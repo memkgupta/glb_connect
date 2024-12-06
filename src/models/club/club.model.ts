@@ -1,7 +1,6 @@
 import mongoose,{Schema} from "mongoose";
 
 const clubSchema = new Schema({
-    college:{type:Schema.Types.ObjectId,ref:'College',required:true},
     clubEmail:{type:String,required:true,unique:true},
     clubDescription:{type:String,required:true},
     clubLogo:{type:String,required:true},
