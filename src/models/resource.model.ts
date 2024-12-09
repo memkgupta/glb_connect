@@ -17,5 +17,5 @@ const contributionSchema = new Schema({
 contributionSchema.index({
     label:'text',branch:'text',code:'text',collegeYear:'text'
 },{weights:{label:10,branch:5,code:10,collegeYear:5}})
-const Resources = mongoose.models.Contribution||mongoose.model("Contribution",contributionSchema);
+const Resources = mongoose.models.Contribution||mongoose.model("Resource",contributionSchema);
 export default Resources;

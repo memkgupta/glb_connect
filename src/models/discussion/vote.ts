@@ -5,5 +5,5 @@ const postVote = new Schema({
     userId:{type:Schema.Types.ObjectId,required:true,ref:'User'},
 },{timestamps:true});
 
-const PostVote = mongoose.models.PostVote || mongoose.model("PostVote",postVote);
+const PostVote = mongoose.model("PostVote",postVote);
 export default PostVote;

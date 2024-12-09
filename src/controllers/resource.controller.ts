@@ -10,6 +10,7 @@ import { NotFoundError } from "@errors/NotFoundError";
 import Vote from "@models/vote.model";
 import { Progress } from "@models/progress.model";
 import mongoose from "mongoose";
+import { ForbiddenError } from "@errors/ForbiddenError";
 
 export const uploadResource = async (
   req: Request,
@@ -404,3 +405,29 @@ export const getResourceById = async (
     return next(new InternalServerError("Something went wrong"));
   }
 };
+export const getMyContributions = async(req:Request,res:Response,next:NextFunction)=>{
+  const _user = req.user;
+  const page = req.query.page;
+  const skip = (parseInt(page as string||'1') -1)*10;
+  try {
+    const user = await User.findById(_user.userId);
+    if(!user)
+    {
+      return next(new ForbiddenError("Invalid session please login again"));
+    }
+    const contributions = await Resources.aggregate([
+      {$match:{
+        contributor:user._id
+    }},{
+        $limit:10
+    },{$skip:skip}
+    ]);
+    const totalContributions = await Resources.find({
+      contributor:user._id
+  }).countDocuments();
+    res.status(200).json({success:true,contributions,totalContributions});
+  } catch (error) {
+    console.log(error);
+    return next(new InternalServerError("Some error occured"));
+  }
+}

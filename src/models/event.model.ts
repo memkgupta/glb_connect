@@ -1,4 +1,4 @@
-import { eventCategories } from "@/constants";
+import { eventCategories } from "@constants/index";
 import mongoose,{mongo, Schema} from "mongoose";
 const eventCategoriesEnum = eventCategories.map(categ=>categ.value);
 const eventSchema = new Schema({

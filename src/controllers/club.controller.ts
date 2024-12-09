@@ -239,7 +239,9 @@ export const addMember = async(req:Request,res:Response,next:NextFunction)=>{
         // Check if the logged-in user is an admin of the club
         const admin = await User.findById(_user.userId);
         const club = await Club.findById(clubId);
-    
+        if(!admin){
+          return next(new ForbiddenError("Invalid session , please login again"))
+        }
         if (!club || !club.admin.equals(admin._id)) {
           return next(new BadRequestError("Bad request"));
         }
@@ -308,4 +310,29 @@ export const updateMember = async(req:Request,res:Response,next:NextFunction)=>{
         console.error('PUT /update-club-member error:', error);
         return next(new InternalServerError("Somer error occured"));
       }
+}
+export const myClub = async(req:Request,res:Response,next:NextFunction)=>{
+  const _user = req.user;
+  try {
+    const user = await User.findById(_user.userId);
+    if (!user) {
+      return next(new ForbiddenError("Invalid session please login again"));
+    }
+
+    // Retrieve only the ID, name, and admin fields of the clubs where the user is the admin
+    const clubs = await Club.findOne(
+      { admin: user._id },
+      { _id: 1, clubName: 1, admin: 1 }
+    );
+
+    if (clubs.length === 0) {
+      return next(new NotFoundError("No registered club found"));
+    }
+
+    res.status(200).json({success:true,clubs:clubs});
+    
+  } catch (error) {
+    console.log(error);
+    return next(new InternalServerError("Some error occured"));
+  }
 }

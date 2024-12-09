@@ -63,12 +63,13 @@ export const signUp = async(req:Request,res:Response,next:NextFunction)=> {
           name,
           email,
           username,
+          lastOtpSent:new Date(),
           password: hashed,
           otp,
           otpExpiry: expiryDate,
           college: college._id,
         });
-  
+        
         await user.save();
       }
   
@@ -98,9 +99,9 @@ export const login = async(req:Request,res:Response,next:NextFunction)=>{
   
     try {
       // Check if the user exists by email or username
-      const user = await User.findOne({
-        $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }],
-      });
+      const user = await User.findOne({$or:[{
+        email:usernameOrEmail
+      },{username:usernameOrEmail}]});
   
       if (!user) {
         return next(new NotFoundError('User Not Found'));
@@ -159,7 +160,7 @@ if(!user.verified){
         }
         if(social_links){
        
-         const socials:[string] = user.socials;
+         const socials:string[] = user.socials;
         
 if(socials.find(link=>social_links===link)){
 return next(new BadRequestError("Already added"));
@@ -238,5 +239,37 @@ export const refreshToken = async(req:Request,res:Response,next:NextFunction)=>{
       success: true,
       accessToken,  // Send new access token
     });
+}
+export const resendVerificationToken = async(req:Request,res:Response,next:NextFunction)=>{
+    const username = req.query.username;
+    const uuid = uuidV4();
+  
+    // Transform UUID into a short OTP (first 6 characters)
+    const otp = uuid.replace(/-/g, '').replace(/\D/g, '').slice(0, 6);
+
+  try {
+    const user = await User.findOne({username:username});
+    if(!user){
+      return next(new BadRequestError("User not registered"));
+    }
+   let diff = 0;
+    if(user.lastOtpSent){
+      const prev = new Date(user.lastOtpSent);
+      const curr = new Date();
+      diff = curr.getTime()-prev.getTime();
+      if(diff<(15*60*1000)){
+        return next(new ForbiddenError("Already requested otp please wait"))
+      }
+    }
+    const emailRes = await sendVerificationEmail(user.email, user.username, otp);
+    if (!emailRes.success) {
+      console.error(emailRes);
+      return next(new InternalServerError(emailRes.message))
+    }
+    res.status(200).json({success:true,message:"Verification code sent"});
+  } catch (error) {
+    console.log(error);
+    return next(new InternalServerError("Some error occured"));
+  }
 }
 // export const me

@@ -10,7 +10,8 @@
       "@middlewares/*":["src/middlewares/*"],
       "@config/*":["src/config/*"],
       "@types/*":["src/types/*"],
-      "@errors/*":["src/errors/*"]
+      "@errors/*":["src/errors/*"],
+      "@constants/*":["src/constants/*"]
     },
    
     /* Visit https://aka.ms/tsconfig to read more about this file */
