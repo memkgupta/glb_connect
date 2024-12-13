@@ -23,5 +23,5 @@ const submissionSchema = new mongoose.Schema({
   });
   
   const FormSubmission = mongoose.model('FormSubmission', submissionSchema);
-  module.exports = FormSubmission;
+export default FormSubmission;
   

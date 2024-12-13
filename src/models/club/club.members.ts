@@ -32,5 +32,5 @@ const clubMemberSchema = new mongoose.Schema({
   
   });
 
-  const ClubMember = mongoose.models.ClubMember || mongoose.model('ClubMember',clubMemberSchema);
+  const ClubMember =  mongoose.model('ClubMember',clubMemberSchema);
   export default ClubMember

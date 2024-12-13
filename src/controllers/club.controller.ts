@@ -294,6 +294,7 @@ export const updateMember = async(req:Request,res:Response,next:NextFunction)=>{
         }
     
         // Check if the logged-in user is the admin of the club
+        //@ts-ignore
         if (!member.clubId.admin.equals(user._id)) {
           return next(new ForbiddenError("Not Enough Permissions"));
         }

@@ -17,9 +17,7 @@ const userSchema = new Schema({
     interests:[{type:String}],
     socials: [{type:String}],
 },{timestamps:true})
-// userSchema.index({
-//     name:'text',username:'text',bio:'text'
-// },{weights:{name:10,username:10,bio:5}})
+
 const User =  mongoose.model('User',userSchema);
 export default User;
 

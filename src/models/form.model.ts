@@ -5,11 +5,7 @@ const formSchema = new mongoose.Schema({
       type: String,
       required: true,
     },
-    formType: {
-      type: String,
-      enum: ['Recruitment', 'Feedback', 'Event', 'Custom'],
-      required: true,
-    },
+    
     fields: [
       {
         fieldLabel: {
@@ -40,4 +36,4 @@ const formSchema = new mongoose.Schema({
   });
   
   const Form = mongoose.model('Form', formSchema);
-  module.exports = Form;
+export default Form;
