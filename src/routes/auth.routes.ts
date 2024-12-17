@@ -9,3 +9,4 @@ router.post('/login',login);
 router.put('/update',authenticate,update)
 router.put('/verify',verify)
 router.get('/refresh-token',refreshToken)
+export default router

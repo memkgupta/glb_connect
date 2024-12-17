@@ -1,3 +1,4 @@
+import { BadRequestError } from "@errors/BadRequestError";
 import { InternalServerError } from "@errors/InternalServerError";
 import { ValidationError } from "@errors/ValidationError";
 import Resources from "@models/resource.model";
@@ -19,10 +20,7 @@ export const isUserNameValid = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
-  const queryParams = {
-    username: searchParams.get("username"),
-  };
+  const queryParams = req.query.search;
 
   try {
     // Validate query parameters with Zod schema
@@ -99,9 +97,7 @@ export const search = async (
     const { type, query } = req.query;
 
     if (!query) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Query parameter is required" });
+      return next(new BadRequestError("Query parameters is required"))
     }
 
     let results;
@@ -140,10 +136,10 @@ export const search = async (
       }));
     }
 
-    return res.status(200).json({ success: true, results });
+    res.status(200).json({ success: true, results });
   } catch (error) {
     console.error("GET /search error:", error);
-    return res
+    res
       .status(500)
       .json({ success: false, message: "Some error occurred" });
   }

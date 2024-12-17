@@ -153,7 +153,7 @@ export const getDashboardData = async (
     ]);
 
     if (club.length === 0) {
-      return res
+       res
         .status(404)
         .json({ success: false, message: "You have no registered club" });
     }
@@ -169,7 +169,7 @@ export const getDashboardData = async (
       dateTime: { $gte: new Date() },
     }).countDocuments();
 
-    return res.status(200).json({
+   res.status(200).json({
       success: true,
       clubDetails: {
         ...club[0],
@@ -179,9 +179,7 @@ export const getDashboardData = async (
     });
   } catch (error) {
     console.error("GET /club-details error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Some error occurred" });
+    return next(new InternalServerError("Some error occured"));
   }
 };
 export const updateClubDetails = async (
@@ -335,5 +333,60 @@ export const myClub = async(req:Request,res:Response,next:NextFunction)=>{
   } catch (error) {
     console.log(error);
     return next(new InternalServerError("Some error occured"));
+  }
+}
+export const viewClub = async(req:Request,res:Response,next:NextFunction)=>{
+ const {clubId} = req.params;
+  try {
+    const club = await Club.aggregate([
+      {
+        $match:{
+          _id:clubId
+        }
+      },
+      {
+        $lookup:{
+        from:'clubmembers',
+        as:'members',
+        foreignField:'clubId',
+        localField:'_id',
+      }
+    },
+    {$unwind:"$members"},
+    {
+      $lookup:{
+        from:'users',
+        as:'users',
+        foreignField:'_id',
+        localField:'members.userId'
+      }
+    },
+    {
+      $unwind:"$users"
+    },
+    {$project:{
+      clubEmail:1,
+      clubDescription:1,
+      clubLogo:1,
+      contactPhone:1,
+      clubName:1,
+      members:{
+        "userId":"$members.userId",
+        "pic":"$users.profile",
+        "name":"$users.name",
+        "role":"$members.role"
+      }
+    }}
+    ]);
+    if(!club)
+    {
+      return next(new NotFoundError("Club not found"))
+    }
+    res.status(200).json({
+      success:true,
+      club:club
+    })
+  } catch (error) {
+    
   }
 }

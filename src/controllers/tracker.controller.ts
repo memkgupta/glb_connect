@@ -16,7 +16,7 @@ export const getTracker = async (
   try {
     const { rid } = req.query; // Extract the resource ID (rid) from query params
     if (!rid) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Resource ID (rid) is required",
       });
@@ -268,12 +268,12 @@ export const updateProgress = async (
 
     await tracker.save();
 
-    return res
+     res
       .status(200)
       .json({ success: true, message: "Updated successfully" });
   } catch (error) {
     console.error(error);
-    return res
+     res
       .status(500)
       .json({ success: false, message: "Something went wrong" });
   }

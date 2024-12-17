@@ -202,7 +202,7 @@ export const postVote = async (
     if (isAlreadyVoted && isAlreadyVoted.voteType === type) {
       // If the user has already voted for this contribution with the same type, remove the vote
       await Vote.findByIdAndDelete(isAlreadyVoted._id);
-      return res.status(201).json({
+      res.status(201).json({
         success: true,
         message: "Vote removed",
       });
