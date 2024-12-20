@@ -3,7 +3,7 @@ import User from "@models/user.model";
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuidV4 } from "uuid";
 import bcrypt from 'bcryptjs'
-import { sendVerificationEmail } from "src/helpers/mail";
+import { sendVerificationEmail } from "../helpers/mail";
 import { InternalServerError } from "@errors/InternalServerError";
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { BadRequestError } from "@errors/BadRequestError";
@@ -11,6 +11,7 @@ import { UnauthorizedError } from "@errors/UnauthorizedError";
 import { NotFoundError } from "@errors/NotFoundError";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "@utils/index";
 import { ForbiddenError } from "@errors/ForbiddenError";
+import Club from "@models/club/club.model";
 export const signUp = async(req:Request,res:Response,next:NextFunction)=> {
     try {
       const { username, email, password, name } = req.body;
@@ -124,7 +125,8 @@ export const login = async(req:Request,res:Response,next:NextFunction)=>{
       res.status(200).json({
         success: true,
         message: 'Login successful.',
-        accessToken
+        user:{email:user.email,name:user.name,username:user.username,verified:user.verified},
+        accessToken,refreshToken
       });
     } catch (error) {
       console.error(error);
@@ -132,8 +134,12 @@ export const login = async(req:Request,res:Response,next:NextFunction)=>{
     }
 }
 export const update = async(req:Request,res:Response,next:NextFunction)=>{
-    const _user = req.user;
-    if(_user){
+  //@ts-ignore
+   //@ts-ignore
+       //@ts-ignore
+        //@ts-ignore
+        const _user = req.user;
+    if(!_user){
         return next(new UnauthorizedError("Please Login First"));
     }
     try {
@@ -216,7 +222,8 @@ export const verify = async(req:Request,res:Response,next:NextFunction)=>{
     }
 }
 export const refreshToken = async(req:Request,res:Response,next:NextFunction)=>{
-    const refreshToken = req.cookies.refresh_token;
+    const refreshToken = req.cookies.refreshToken;
+    // const refreshToken = req.body.token;
 
     if (!refreshToken) {
        res.status(403).json({ success: false, message: 'Refresh token required' });
@@ -272,4 +279,51 @@ export const resendVerificationToken = async(req:Request,res:Response,next:NextF
     return next(new InternalServerError("Some error occured"));
   }
 }
-// export const me
+export const logout = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+  const _user = req.user;
+   
+  try {
+   const user = await User.findById(_user.userId);
+   if(!user){
+    return next(new ForbiddenError("Invalid session please login again"))
+   } 
+   user.refresh_token = null;
+   await user.save();
+   res.status(200).json({success:true,message:"Logout successfull"});
+  } catch (error) {
+    console.error(error);
+    return next(new InternalServerError("Some error occured"));
+  }
+}
+export const session = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+  const _user = req.user;
+  try {
+    const user = await User.findById(_user.userId);
+    if(!user)
+    {
+      return next(new ForbiddenError("Invalid session , Please login again"))
+    }
+    res.status(200).json({ success:true,user:{email:user.email,name:user.name,username:user.username,verified:user.verified}})
+  } catch (error) {
+    console.error(error);
+    return next(new InternalServerError("Some error occured"))
+  }
+}
+export const me = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+  const _user = req.user;
+  try {
+    const user = await User.findById(_user.userId);
+    if(!user){
+      return next(new ForbiddenError("Invalid session Please login again"))
+    }
+    const isClubAdmin = await Club.findOne({admin:user._id});
+    const resp = {username:user.username,name:user.name,profile:user.profile,bio:user.bio,interest:user.interests,courses:[],events:[],socials:user.socials,isClubAdmin:isClubAdmin?true:false}
+ res.status(200).json({success:true,data:resp});
+  } catch (error) {
+    console.error(error);
+    return next(new InternalServerError("Some error occured"));
+  }
+}

@@ -15,7 +15,8 @@ export const registerClub = async (
   next: NextFunction
 ) => {
   try {
-    const _user = req.user;
+   //@ts-ignore
+        const _user = req.user;
     if (!_user) {
       return next(new UnauthorizedError("Please Login First"));
     }
@@ -57,7 +58,8 @@ export const getDashboardData = async (
   next: NextFunction
 ) => {
   try {
-    const _user = req.user;
+       //@ts-ignore
+        const _user = req.user;
 
     if (!_user) {
       return next(new UnauthorizedError("Please Login first"));
@@ -188,7 +190,8 @@ export const updateClubDetails = async (
   next: NextFunction
 ) => {
   try {
-    const _user = req.user;
+       //@ts-ignore
+        const _user = req.user;
 
     if (!_user) {
       return next(new UnauthorizedError("Please login first"));
@@ -228,6 +231,8 @@ export const addMember = async(req:Request,res:Response,next:NextFunction)=>{
         const { clubId, userId, role, team, status, joinedAt } = req.body;
     
 
+      
+       //@ts-ignore
         const _user = req.user;
     
         if (!_user) {
@@ -274,6 +279,7 @@ export const updateMember = async(req:Request,res:Response,next:NextFunction)=>{
     
         // Get logged-in user's session
      
+       //@ts-ignore
         const _user = req.user;
     
        
@@ -311,7 +317,9 @@ export const updateMember = async(req:Request,res:Response,next:NextFunction)=>{
       }
 }
 export const myClub = async(req:Request,res:Response,next:NextFunction)=>{
-  const _user = req.user;
+
+       //@ts-ignore
+        const _user = req.user;
   try {
     const user = await User.findById(_user.userId);
     if (!user) {
@@ -390,3 +398,86 @@ export const viewClub = async(req:Request,res:Response,next:NextFunction)=>{
     
   }
 }
+export const getEvents = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { page = 1 } = req.query; // Default page is 1 if not provided
+
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
+
+    if (!_user) {
+      return next(new UnauthorizedError("Please login first"));
+    }
+
+    // Find the logged-in user
+    const user = await User.findById(_user.userId);
+    if (!user) {
+      return next(new ForbiddenError("Invalid session : Please Login Again"));
+    }
+
+    // Find the club associated with the admin user
+    const club = await Club.findOne({ admin: user._id });
+    if (!club) {
+      return next(new BadRequestError("Bad request"));
+    }
+
+    // Pagination setup
+    const skip = (parseInt(page as string) - 1) * 10;
+
+    // Aggregate events data
+    const events = await Event.aggregate([
+      {
+        $match: {
+          club: club._id,
+        },
+      },
+      {
+        $lookup: {
+          from: "event_registrations",
+          localField: "_id",
+          foreignField: "event",
+          as: "registrations",
+        },
+      },
+      {
+        $project: {
+          dateTime: 1,
+          name: 1,
+          brief_description: { $substr: ["$description", 0, 100] },
+          location: 1,
+          category: 1,
+          participantsFromOutsideAllowed: 1,
+          maxCapacity: 1,
+        },
+      },
+      { $skip: skip },
+      { $limit: 10 },
+    ]);
+
+    // Count total results
+    const totalResults = await Event.aggregate([
+      {
+        $match: {
+          club: club._id,
+        },
+      },
+      {
+        $count: "totalResults",
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      events,
+      totalResults: totalResults[0]?.totalResults || 0,
+    });
+  } catch (error) {
+    console.error("GET /events error:", error);
+    return next(new InternalServerError("Some error occured"));
+  }
+};

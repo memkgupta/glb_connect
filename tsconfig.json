@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+
     "baseUrl": "./",                                  
     "paths": {
       "@services/*": ["src/services/*"],
@@ -9,11 +10,13 @@
       "@routes/*":["src/routes/*"],
       "@middlewares/*":["src/middlewares/*"],
       "@config/*":["src/config/*"],
-      "@types/*":["src/types/*"],
+      "typeRoots": [ "/src/types"],  
+      // "@types/*":["src/types/*"],
       "@errors/*":["src/errors/*"],
+      
       "@constants/*":["src/constants/*"]
     },
-   
+"typeRoots": ["src/@types"],
     /* Visit https://aka.ms/tsconfig to read more about this file */
 
     /* Projects */
@@ -45,7 +48,7 @@
     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
     // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
-    // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */
+                                    /* Specify multiple folders that act like './node_modules/@types'. */
     // "types": [],                                      /* Specify type package names to be included without being referenced in a source file. */
     // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
     // "moduleSuffixes": [],                             /* List of file name suffixes to search when resolving a module. */
@@ -120,6 +123,9 @@
 
     /* Completeness */
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
-    "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
-  }
+    "skipLibCheck": true ,                                /* Skip type checking all .d.ts files. */
+ 
+  },
+  "include": ["**/*.ts", "**/*.tsx", "src/@types/global.d.ts","src/@types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

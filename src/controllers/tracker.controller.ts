@@ -22,7 +22,9 @@ export const getTracker = async (
       });
     }
 
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
 
     // If no user in session, return an error
     if (!_user) {
@@ -67,7 +69,9 @@ export const startTracker = async (
   try {
     // Check if the session exists
 
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     if (!_user) {
       return next(new UnauthorizedError("Please Login first"));
     }
@@ -169,7 +173,9 @@ export const getCourses = async (
   try {
     // Simulate fetching session details
 
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
 
     if (!_user) {
       return next(new UnauthorizedError("Login First"));
@@ -187,7 +193,7 @@ export const getCourses = async (
 
     // Perform aggregation
     const courses = await Progress.aggregate([
-      { $match: { user_id: user._id } },
+      { $match: { user: user._id } },
       {
         $lookup: {
           from: "resources",
@@ -232,7 +238,9 @@ export const updateProgress = async (
   try {
     // Fetch session details
 
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     if (!_user) {
       return next(new UnauthorizedError("Please Login First"));
     }

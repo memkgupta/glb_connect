@@ -2,6 +2,7 @@ import { BadRequestError } from "@errors/BadRequestError";
 import { InternalServerError } from "@errors/InternalServerError";
 import { ValidationError } from "@errors/ValidationError";
 import Resources from "@models/resource.model";
+import Source from "@models/source.model";
 import Subject from "@models/subject.model";
 import User from "@models/user.model";
 import { NextFunction, Request, Response } from "express";
@@ -144,3 +145,13 @@ export const search = async (
       .json({ success: false, message: "Some error occurred" });
   }
 };
+export const getSources = async(req:Request,res:Response,next:NextFunction)=>{
+  let {page=0} = req.query
+  try {
+    const sources = await Source.find().limit(20).skip((parseInt(page as string)-1)*20);
+    res.status(200).json({success:true,data:sources})
+  } catch (error) {
+    console.error(error);
+    return next(new InternalServerError("Some error occured"))
+  }
+}

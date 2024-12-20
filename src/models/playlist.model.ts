@@ -6,7 +6,7 @@ const playlistSchema = new Schema({
          label:{type:String},
          videoUrl:{type:String},
          thumbnail:{type:String},
-
+         description:{type:String},   
         }]
 });
 

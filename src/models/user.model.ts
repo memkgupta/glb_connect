@@ -11,7 +11,7 @@ const userSchema = new Schema({
     lastOtpSent:{type:Date},
     password:{type:String,required:true},
     refresh_token:{type:String},
-    role:{type:String,enum:["ADMIN","CONTRIBUTOR","STUDENT","CLUB","DIRECTOR","HOD","FACULTY"],default:'USER'},
+    role:{type:String,enum:["USER","ADMIN","CONTRIBUTOR","STUDENT","CLUB","DIRECTOR","HOD","FACULTY"],default:'USER'},
     bio:{type:String,default:''},
     college:{type:Schema.Types.ObjectId,ref:'College'},
     interests:[{type:String}],

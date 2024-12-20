@@ -8,94 +8,140 @@ import { Event, EventFeedback, EventRegistration } from "@models/event.model";
 import Form from "@models/form.model";
 import FormSubmission from "@models/form.submission.model";
 import User from "@models/user.model";
-import { AddFormBody, FormField } from "../types/index";
+import { AddFormBody, FormField } from "../@types/index";
 import { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import { date } from "zod";
-import { sendEventRegistrationEmail } from "src/helpers/mail";
+import { sendEventRegistrationEmail } from "../helpers/mail";
 import ClubMember from "@models/club/club.members";
 
-export const getEvents = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { page = 1 } = req.query; // Default page is 1 if not provided
-
-    const _user = req.user;
-
-    if (!_user) {
-      return next(new UnauthorizedError("Please login first"));
-    }
-
-    // Find the logged-in user
-    const user = await User.findById(_user.userId);
-    if (!user) {
-      return next(new ForbiddenError("Invalid session : Please Login Again"));
-    }
-
-    // Find the club associated with the admin user
-    const club = await Club.findOne({ admin: user._id });
-    if (!club) {
-      return next(new BadRequestError("Bad request"));
-    }
-
-    // Pagination setup
-    const skip = (parseInt(page as string) - 1) * 10;
-
-    // Aggregate events data
-    const events = await Event.aggregate([
-      {
-        $match: {
-          club: club._id,
-        },
-      },
-      {
-        $lookup: {
-          from: "event_registrations",
-          localField: "_id",
-          foreignField: "event",
-          as: "registrations",
-        },
-      },
-      {
-        $project: {
-          dateTime: 1,
-          name: 1,
-          brief_description: { $substr: ["$description", 0, 100] },
-          location: 1,
-          category: 1,
-          participantsFromOutsideAllowed: 1,
-          maxCapacity: 1,
-        },
-      },
-      { $skip: skip },
-      { $limit: 10 },
-    ]);
-
-    // Count total results
-    const totalResults = await Event.aggregate([
-      {
-        $match: {
-          club: club._id,
-        },
-      },
-      {
-        $count: "totalResults",
-      },
-    ]);
-
-    res.status(200).json({
-      success: true,
-      events,
-      totalResults: totalResults[0]?.totalResults || 0,
-    });
-  } catch (error) {
-    console.error("GET /events error:", error);
-    return next(new InternalServerError("Some error occured"));
-  }
+export const getEvents = async(req:Request,res:Response,next:NextFunction)=>{
+  const queryParams = req.query;
+//   const queryParams = {
+//     happening:searchParams.get('happening'),
+//     location:searchParams.get('location'),
+//     category:searchParams.get('category'),
+//     college:searchParams.get('college'),
+//     keyword:searchParams.get('keyword'),
+//     page : parseInt(searchParams.get('page')||'1'),
+//     id:searchParams.get('id'),
+// } 
+const page = parseInt(req.query.page as string) || 1;
+let matchStage:any = {
+        
 };
+if(queryParams.location){
+matchStage.location = queryParams.location
+}
+if(queryParams.category && queryParams.category!="all"){
+matchStage.category = queryParams.category
+}
+
+if(queryParams.keyword){
+matchStage.name = {$regex:queryParams.keyword,$options:'i'}
+}
+
+var startDate = new Date();
+var endDate = new Date();
+if(queryParams.happening){
+
+const h = queryParams.happening;
+if(h==="this-week"){
+  
+   endDate = getWeekEnd(endDate);
+ 
+}
+if(h==="this-month"){
+    startDate = getMonthStart(startDate);
+    endDate = getMonthEnd(endDate);
+
+}
+if(h==="this-year"){
+    startDate = getYearStart(startDate)
+    endDate = getYearEnd(endDate)
+   
+}
+matchStage.dateTime={
+    $gte:startDate,
+    $lte:endDate
+}
+
+}
+const skip = (page-1)*20;
+try {
+  const events = await Event.aggregate([
+      
+    {$match:matchStage},
+     {
+        $lookup:{
+        from:'colleges',
+        foreignField:'_id',
+        localField:'college',
+        as:'college',
+     }
+    },
+    {
+        $lookup:{
+        from:'clubs',
+        foreignField:'_id',
+        localField:'club',
+        as:'club',
+     }
+    },
+    {$unwind:{
+        path:'$club'
+    }},
+    {$lookup:{
+        from:'event_registrations',
+        localField:'_id',
+        foreignField:'event',
+        as:'registrations'
+    }},
+    {$project:{
+        dateTime:1,
+        name:1,
+        brief_description:{$substr:["$description", 0, 100]},
+        location:1,
+        category:1,
+        participantsFromOutsideAllowed:1,
+        maxCapacity:1,
+        club:{
+            clubLogo:1,
+            clubName:1,
+        },
+        college:{
+            name:1
+        },
+        totalRegistrations:{$size:"$registrations"}
+    }},
+    {
+        $sort:{'totalRegistrations':-1}
+    },
+    {$skip:skip},
+    {$limit:10}
+])
+const totalResults = await Event.aggregate([
+  
+    {$match:matchStage},
+     {
+        $lookup:{
+        from:'colleges',
+        foreignField:'_id',
+        localField:'college',
+        as:'college',
+     }
+    },
+    
+    {
+        $count:'totalResults'
+    }
+])
+res.status(200).json({success:true,events:events,total:totalResults})
+} catch (error) {
+  console.error(error);
+  return next(new InternalServerError("Some error occured"))
+}
+}
 export const getEventDashboardById = async (
   req: Request,
   res: Response,
@@ -104,7 +150,9 @@ export const getEventDashboardById = async (
   const { id } = req.params;
 
   try {
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     // Validate user session
     const user = await User.findById(_user.userId);
     if (!user) {
@@ -191,7 +239,9 @@ export const updateEvent = async (
   } = req.body;
 
   try {
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
 
     const user = await User.findById(_user.userId);
     if (!user) {
@@ -265,7 +315,9 @@ export const addEvent = async (
   } = req.body;
 
   try {
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
 
     // Validate user session
     const user = await User.findById(_user.userId);
@@ -330,7 +382,9 @@ export const getRegistrations = async (
   }
 
   try {
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
 
     const user = await User.findById(_user.userId);
     if (!user) {
@@ -442,9 +496,20 @@ export const getEventById = async (
     if (!event || event.length == 0) {
       return next(new NotFoundError("Event not found"));
     }
+    let registration;
+    //@ts-ignore
+    if(req.user){
+      registration = await EventRegistration.findOne({
+        id:id,
+        //@ts-ignore
+        user:req.user.userId
+      })
+    }
+    
     res.status(200).json({
       success: true,
       data: event[0],
+      registered:registration?registration._id:null
     });
   } catch (error) {
     console.error(error);
@@ -456,7 +521,9 @@ export const registerForEvent = async (
   res: Response,
   next: NextFunction
 ) => {
-  const _user = req.user;
+ //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
   const { event_id } = req.body;
   try {
     const user = await User.findById(_user.userId);
@@ -507,7 +574,9 @@ export const fillRegistrationForm = async (
   res: Response,
   next: NextFunction
 ) => {
-  const _user = req.user;
+ //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
   const { registrationId, formData } = req.body;
   try {
     const user = await User.findById(_user.userId);
@@ -553,7 +622,9 @@ export const addFormToEvent = async (
   res: Response,
   next: NextFunction
 ) => {
-  const _user = req.user;
+ //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
   const body: AddFormBody = req.body;
   try {
     const user = await User.findById(_user.userId);
@@ -586,7 +657,9 @@ export const updateForm = async (
   res: Response,
   next: NextFunction
 ) => {
-  const _user = req.user;
+ //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
   const formId = req.query.formId;
   const body: Partial<AddFormBody> = req.body;
   try {
@@ -631,7 +704,9 @@ export const verifyPass = async (
   res: Response,
   next: NextFunction
 ) => {
-  const _user = req.user;
+ //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
   const { passId } = req.body;
   try {
     const user = await User.findById(_user.userId);
@@ -659,6 +734,7 @@ export const verifyPass = async (
   }
 };
 export const viewRegistrationById = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
 const _user = req.user;
 const {registration_id} = req.body;
 try {
@@ -726,6 +802,7 @@ res.status(200).json({
 }
 }
 export const giveFeedback = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
 const _user = req.user;
 const {feedback_msg,rating,event_id} = req.body;
 try {
@@ -764,7 +841,9 @@ res.status(200).json({success:true,message:"Your feedback was submitted"})
 }
 }
 export const fetchFeedbacks = async(req:Request,res:Response,next:NextFunction)=>{
-  const _user = req.user;
+ //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
   let {page,event_id} = req.query;
   try {
     const user = await User.findById(_user.userId);
@@ -805,3 +884,46 @@ export const fetchFeedbacks = async(req:Request,res:Response,next:NextFunction)=
   
 }
 
+function startOfDay(date:Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+// Helper function to get the start of the week (Sunday)
+function getWeekStart(date:Date) {
+  const day = date.getDay();
+  console.log(day);
+  const diff = date.getDate() - day;
+  console.log(diff)
+ 
+  return startOfDay(new Date(date.setDate(diff) + 1));
+
+}
+
+// Helper function to get the end of the week (Saturday)
+function getWeekEnd(date:Date) {
+  const day = date.getDay();
+  const diff = 7;
+  
+  return startOfDay(new Date(date.setDate(diff+1) + 1)); // Adding 1 to include the whole day
+  
+}
+
+// Helper function to get the start of the month
+function getMonthStart(date:Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+// Helper function to get the end of the month
+function getMonthEnd(date:Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999); // Last day of the current month
+}
+
+// Helper function to get the start of the year
+function getYearStart(date:Date) {
+  return new Date(date.getFullYear(), 0, 1);
+}
+
+// Helper function to get the end of the year
+function getYearEnd(date:Date) {
+  return new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999); // Last day of the current year
+}

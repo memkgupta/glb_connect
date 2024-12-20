@@ -10,7 +10,9 @@ import Vote from "@models/vote.model";
 import { NextFunction, Request, Response } from "express";
 
 export const createChannel = async(req:Request,res:Response,next:NextFunction)=>{
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     const {name,rules,description,category,coverPage,profilePic} = req.body;
     try {
         const user = await User.findById(_user.userId);
@@ -36,7 +38,9 @@ export const createChannel = async(req:Request,res:Response,next:NextFunction)=>
 }
 
 export const createPost = async(req:Request,res:Response,next:NextFunction)=>{
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     const {title,content,attachments,tags,channelId} = req.body;
     try {
         const user = await User.findById(_user.userId);
@@ -55,7 +59,9 @@ title,content,attachments,tags,channel:channelId,author:user._id
 }
 
 export const reply = async(req:Request,res:Response,next:NextFunction)=>{
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     const {postId,content,attachments,parentId} = req.body;
     try {
         const user = await User.findById(_user.userId);
@@ -87,7 +93,9 @@ export const reply = async(req:Request,res:Response,next:NextFunction)=>{
     }
 }
 export const deletePost = async(req:Request,res:Response,next:NextFunction)=>{
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     const {postId} = req.body;
     try{
 const user = await User.findById(_user.userId);
@@ -111,7 +119,9 @@ if(!user){
     }
 }
 export const deleteReply = async(req:Request,res:Response,next:NextFunction)=>{
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     const {replyId} = req.body;
     try{
 const user = await User.findById(_user.userId);
@@ -136,7 +146,9 @@ if(!user){
 }
 
 export const vote = async(req:Request,res:Response,next:NextFunction)=>{
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     const {postId,voteType} = req.body;
     try {
         const user = await User.findById(_user.userId);
@@ -178,5 +190,19 @@ if(vote.voteType != voteType){
     }
 }
 export const getPosts = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
+   try {
+    const user = await User.findById(_user.userId);
+    if(!user){
+        return next(new ForbiddenError("Invalid session , please login again"));
+    }
+
+    const posts = await Post.aggregate([
+        
+    ])
+   } catch (error) {
     
+   } 
 }

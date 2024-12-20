@@ -1,4 +1,4 @@
-import { projectCategories } from "@/constants";
+import { projectCategories } from "../constants/index";
 import mongoose from "mongoose";
 const projectCategoriesEnum = projectCategories.map(categ=>categ.value);
 const projectSchema = new mongoose.Schema({

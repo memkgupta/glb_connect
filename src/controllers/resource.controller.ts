@@ -1,7 +1,7 @@
 import { UnauthorizedError } from "@errors/UnauthorizedError";
 import Resources from "@models/resource.model";
 import User from "@models/user.model";
-import { YTLecture } from "../types/index";
+import { YTLecture } from "../@types/index";
 import { NextFunction, Request, Response } from "express";
 import Playlists from "@models/playlist.model";
 import { InternalServerError } from "@errors/InternalServerError";
@@ -11,6 +11,7 @@ import Vote from "@models/vote.model";
 import { Progress } from "@models/progress.model";
 import mongoose from "mongoose";
 import { ForbiddenError } from "@errors/ForbiddenError";
+import Source from "@models/source.model";
 
 export const uploadResource = async (
   req: Request,
@@ -18,7 +19,9 @@ export const uploadResource = async (
   next: NextFunction
 ) => {
   try {
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     if (!_user) {
       return next(new UnauthorizedError("Please login first"));
     }
@@ -37,14 +40,19 @@ export const uploadResource = async (
       university,
       type,
       file,
+      source,
       sessionYear,
       playlist,
     } = req.body;
-
+    const sourceExists = await Source.findOne({name:source});
+    if(!sourceExists){
+      await Source.create({name:source});
+    }
     const resource = new Resources({
       label,
       branch,
       file,
+      source,
       type,
       sessionYear,
       code,
@@ -94,6 +102,8 @@ export const getResources = async (
     code?: string;
     university?: string;
     type: string;
+    source?: string;
+    subject?:string;
   } = {
     collegeYear: "1", // Default values
     university: "AKTU",
@@ -113,7 +123,12 @@ export const getResources = async (
   if (params.type) {
     filters.type = params.type as string;
   }
-
+  if (params.source) {
+    filters.source = params.source as string;
+  }
+  if(params.subject){
+    filters.subject = params.subject as string
+  }
   console.log(filters); // You can remove this in production, just for debugging
 
   try {
@@ -125,7 +140,7 @@ export const getResources = async (
           as: "votes",
           from: "votes", // The collection to join
           localField: "_id", // Field in Contributions
-          foreignField: "contributionId", // Field in Votes collection
+          foreignField: "resourceId", // Field in Votes collection
         },
       },
       {
@@ -151,11 +166,27 @@ export const getResources = async (
         },
       },
       {
+        $sort: {
+          upvoteCount: -1,
+          downvoteCount:1,
+        }
+      },
+      {$limit:20},
+      {$skip:(parseInt((params.page||"1")as string)-1)*20},
+      {
         $project: {
           _id: 0,
           upvoteCount: 1,
           downvoteCount: 1,
-          data: 1, // Include resource data and vote counts
+          data:{
+            thumbnail:1,
+            label:1,
+            sessionYear:1,
+            _id:1,
+            type:1,
+            
+          }
+       
         },
       },
     ]);
@@ -175,7 +206,9 @@ export const postVote = async (
   const { r_id, type } = req.body; // Assuming you're sending JSON in the request body
 
   try {
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     // If no user in session, return 403 response
     if (!_user) {
       return next(new UnauthorizedError("Please Login First"));
@@ -367,7 +400,9 @@ export const getResourceById = async (
   const { id } = req.params;
 
   try {
-    const _user = req.user;
+   //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
     // Retrieve session and user information
 
     // Fetch the contribution resource
@@ -378,7 +413,7 @@ export const getResourceById = async (
     }
 
     // Build aggregation pipeline
-    const aggregationPipeline = buildAggregationPipeline(id, resource.type);
+    const aggregationPipeline = buildAggregationPipeline(id, resource.type as string);
     const aggregatedResource = await Resources.aggregate(aggregationPipeline);
 
     // Fetch user-specific data if the user is authenticated
@@ -405,29 +440,44 @@ export const getResourceById = async (
     return next(new InternalServerError("Something went wrong"));
   }
 };
-export const getMyContributions = async(req:Request,res:Response,next:NextFunction)=>{
-  const _user = req.user;
+export const getMyContributions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+ //@ts-ignore
+       //@ts-ignore
+        const _user = req.user;
   const page = req.query.page;
-  const skip = (parseInt(page as string||'1') -1)*10;
+  const skip = (parseInt((page as string) || "1") - 1) * 10;
   try {
     const user = await User.findById(_user.userId);
-    if(!user)
-    {
+    if (!user) {
       return next(new ForbiddenError("Invalid session please login again"));
     }
     const contributions = await Resources.aggregate([
-      {$match:{
-        contributor:user._id
-    }},{
-        $limit:10
-    },{$skip:skip}
+      {
+        $match: {
+          contributor: user._id,
+        },
+      },
+      {
+        $limit: 10,
+      },
+      { $skip: skip },
     ]);
     const totalContributions = await Resources.find({
-      contributor:user._id
-  }).countDocuments();
-    res.status(200).json({success:true,contributions,totalContributions});
+      contributor: user._id,
+    }).countDocuments();
+    res.status(200).json({ success: true, contributions, totalContributions });
   } catch (error) {
     console.log(error);
     return next(new InternalServerError("Some error occured"));
   }
+};
+export const editContribution = async(req:Request,res:Response,next:NextFunction)=>{
+  // todo
+}
+export const updatePlaylist = async(req:Request,res:Response,next:NextFunction)=>{
+  // functionality of changing url , description or position of the playlist item
 }
