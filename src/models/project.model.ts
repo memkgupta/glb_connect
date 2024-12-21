@@ -1,3 +1,4 @@
+import { Schema } from "zod";
 import { projectCategories } from "../constants/index";
 import mongoose from "mongoose";
 const projectCategoriesEnum = projectCategories.map(categ=>categ.value);
@@ -21,9 +22,7 @@ const projectSchema = new mongoose.Schema({
     live_link:{type:String},
     github:{type:String},
     
-    contributors:[{username:String,
-        name:String,
-        linkedin:String,
+    contributors:[{user:{type:mongoose.Schema.Types.ObjectId,required:true,ref:'User'},
         role:{type:String,required:true}}]
 },{timestamps:true});
 
@@ -43,6 +42,6 @@ const collabRequestSchema = new mongoose.Schema({
     contact_email:{type:String}
 },{timestamps:true})
 
-export const Project = mongoose.models.Project || mongoose.model("Project",projectSchema);
-export const ProjectLog = mongoose.models.ProjectLog || mongoose.model("ProjectLog",projectLogsSchema)
-export const CollabRequest = mongoose.models.CollabRequest || mongoose.model("CollabRequest",collabRequestSchema)
+export const Project =  mongoose.model("Project",projectSchema);
+export const ProjectLog = mongoose.model("ProjectLog",projectLogsSchema)
+export const CollabRequest = mongoose.model("CollabRequest",collabRequestSchema)

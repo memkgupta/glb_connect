@@ -247,7 +247,7 @@ export const postVote = async (
     }
 
     const vote = new Vote({
-      contributionId: resource._id,
+     resourceId: resource._id,
       userId: user._id,
       voteType: type,
     });

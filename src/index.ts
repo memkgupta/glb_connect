@@ -12,6 +12,7 @@ import resourceRouter from "@routes/resource.routes"
 import utilRouter from "@routes/utils.routes"
 import cookieParser from 'cookie-parser'
 import userRouter from '@routes/user.routes'
+import projectRouter from '@routes/project.routes'
 // dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
@@ -31,6 +32,7 @@ app.use("/api/v1/events",eventRouter)
 app.use("/api/v1/forms",formRouter)
 app.use("/api/v1/utils",utilRouter)
 app.use("/api/v1/users",userRouter)
+app.use("/api/v1/projects",projectRouter)
 app.use(errorHandler);
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
