@@ -196,6 +196,7 @@ export const getEventDashboardById = async (
           banner: 1,
           venue: 1,
           forms: 1,
+          external_forms:1,
           maxCapacity: 1,
           clubDetails: {
             clubLogo: 1,
@@ -205,7 +206,7 @@ export const getEventDashboardById = async (
         },
       },
     ]);
-
+console.log(eventData)
     // Return event data
     res.status(200).json({
       success: true,
@@ -227,6 +228,7 @@ export const updateEvent = async (
     description,
     dateTime,
     forms,
+    external_forms,
     location,
     category,
     banner,
@@ -274,8 +276,8 @@ export const updateEvent = async (
 
     if (maxCapacity) event.maxCapacity = maxCapacity;
     if (registrationForm) event.registrationForm = registrationForm;
-    if (forms) event.external_forms = forms;
-
+    if (external_forms) event.external_forms = external_forms;
+console.log(external_forms)
     // Save the updated event
     await event.save();
 
@@ -315,7 +317,6 @@ export const addEvent = async (
   } = req.body;
 
   try {
-   //@ts-ignore
        //@ts-ignore
         const _user = req.user;
 
@@ -351,7 +352,7 @@ export const addEvent = async (
       creationTimestamp: creationTimestamp || new Date(),
       category,
       club: club._id,
-      college: club.college,
+      // college: club.college,
       participantsFromOutsideAllowed,
       maxTeamSize,
       isTeamEvent,
@@ -484,6 +485,7 @@ export const getEventById = async (
           category: 1,
           banner: 1,
           forms: 1,
+          external_forms:1,
           maxCapacity: 1,
           clubDetails: {
             clubLogo: 1,

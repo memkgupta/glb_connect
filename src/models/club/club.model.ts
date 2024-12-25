@@ -10,5 +10,5 @@ const clubSchema = new Schema({
     admin:{type:Schema.Types.ObjectId,ref:'User',required:true,unique:true},
 });
 
-const Club = mongoose.models.Club || mongoose.model('Club',clubSchema);
+const Club =  mongoose.model('Club',clubSchema);
 export default Club;

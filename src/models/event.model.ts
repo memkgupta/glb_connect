@@ -18,9 +18,10 @@ const eventSchema = new Schema({
     maxCapacity:{type:Number,required:true,default:100},
     creationTimestamp: { type: Date, default: Date.now },
     external_forms:[{
+        _id:{type:String,required:true},
         label:{type:String,required:true},
-        form:{type:mongoose.Schema.Types.ObjectId,ref:'Forms'},
-        link:{type:String}
+        link:{type:String},
+        form:{type:String}
     }],
     usingInternalRegistration:{type:Boolean,default:true},
     registrationForm:{type:mongoose.Schema.Types.ObjectId,ref:'Forms'},

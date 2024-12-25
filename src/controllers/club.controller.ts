@@ -65,7 +65,7 @@ export const getDashboardData = async (
       return next(new UnauthorizedError("Please Login first"));
     }
 
-    const user = await User.findOne({ email: _user.email });
+    const user = await User.findById(_user.userId);
     if (!user) {
       return next(new ForbiddenError("Invalid session : Please Login First"));
     }
@@ -228,7 +228,7 @@ export const addMember = async(req:Request,res:Response,next:NextFunction)=>{
     try {
  
     
-        const { clubId, userId, role, team, status, joinedAt } = req.body;
+        const {  userEmail, role, team, status, joinedAt } = req.body;
     
 
       
@@ -241,7 +241,9 @@ export const addMember = async(req:Request,res:Response,next:NextFunction)=>{
     
         // Check if the logged-in user is an admin of the club
         const admin = await User.findById(_user.userId);
-        const club = await Club.findById(clubId);
+        const club = await Club.findOne({
+          admin:admin!!._id
+        });
         if(!admin){
           return next(new ForbiddenError("Invalid session , please login again"))
         }
@@ -249,7 +251,7 @@ export const addMember = async(req:Request,res:Response,next:NextFunction)=>{
           return next(new BadRequestError("Bad request"));
         }
     
-        const user = await User.findById(userId);
+        const user = await User.findOne({email:userEmail});
     
         if (!user) {
           return next(new ForbiddenError("Invalid session : Please Login again"))
@@ -257,7 +259,7 @@ export const addMember = async(req:Request,res:Response,next:NextFunction)=>{
     
         const member = await ClubMember.create({
           clubId: club._id,
-          userId: userId,
+          userId: user._id,
           role: role,
           team: team,
           status: status,
@@ -332,7 +334,7 @@ export const myClub = async(req:Request,res:Response,next:NextFunction)=>{
       { _id: 1, clubName: 1, admin: 1 }
     );
 
-    if (clubs.length === 0) {
+    if (!clubs) {
       return next(new NotFoundError("No registered club found"));
     }
 
@@ -481,3 +483,56 @@ export const getEvents = async (
     return next(new InternalServerError("Some error occured"));
   }
 };
+export const getMembers = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+  const _user = req.user;
+try {
+  const user = await User.findById(_user.userId);
+  if(!user){
+    return next(new ForbiddenError("Invalid session , please login again"))
+  }
+  const club = await Club.findOne({admin:user._id});
+  if(!club){
+    return next(new BadRequestError("No club found"))
+  }
+  const members = await ClubMember.aggregate([
+    {$match:{
+      clubId:club._id
+    },
+   
+  },
+  {
+    $lookup:{
+      from:'users',
+      as:'user',
+      localField:'userId',
+      foreignField:'_id'
+    }
+  },
+  {$unwind:"$user"},
+  {
+    $replaceRoot: {
+      newRoot: {
+        $mergeObjects: [
+          { crole: "$role", team: "$team",joinedAt:"$joinedAt" },
+          "$user", // Spread the `data` object into the parent
+        ],
+      },
+    },
+  },
+  {$project:{
+    crole:1,
+    team:1,
+    joinedAt:1,
+    name:1,
+    email:1,
+    username:1,
+    profile:1
+  }}
+  ])
+  res.status(200).json({success:true,members})
+} catch (error) {
+  console.error(error);
+  return next(new InternalServerError("Some error occured"));
+}
+}

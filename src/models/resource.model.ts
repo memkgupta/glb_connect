@@ -15,7 +15,7 @@ const contributionSchema = new Schema({
     file:{type:String},
     university:{type:String,required:'true'},
     contributor:{type:Schema.Types.ObjectId,ref:'User'}
-});
+},{timestamps:true});
 contributionSchema.index({
     label:'text',branch:'text',code:'text',collegeYear:'text'
 },{weights:{label:10,branch:5,code:10,collegeYear:5}})

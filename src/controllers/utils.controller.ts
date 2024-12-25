@@ -117,6 +117,7 @@ export const search = async (
         label: user.name,
         thumbnail: user.profile,
         sub: user.username,
+        _id:user._id,
         href: `/user/${user.username}`,
       }));
     } else {

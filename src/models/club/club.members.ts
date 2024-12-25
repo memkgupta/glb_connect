@@ -22,8 +22,8 @@ const clubMemberSchema = new mongoose.Schema({
     },
     status: {
       type: String,
-      enum: ['Active', 'Pending', 'Rejected'], // Membership status
-      default: 'Pending',
+      enum: ['Active',  'Inactive'], // Membership status
+      default: 'Active',
     },
     joinedAt: {
       type: Date,

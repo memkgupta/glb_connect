@@ -31,7 +31,27 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       res.status(401).json({ success: false, message: 'Invalid or expired token' });
     }
   };
-
+ export const optionalAuth = (req:Request, res:Response, next:NextFunction) => {
+    const token = req.headers['authorization']?.split(' ')[1]; // Assuming Bearer Token
+  console.log(token)
+    if (token) {
+      try {
+        const decoded = jwt.verify(token!, process.env.ACCESS_TOKEN_SECRET!) as JwtPayload
+        //@ts-ignore
+        req.user = {
+          userId:decoded.userId
+        };
+        next();
+      } catch (error) {
+        console.error(error);
+        next();
+      }
+    
+    } else {
+      next(); // No token, proceed without user info
+    }
+  };
+  
   export const authorize = async(roles: UserRoles[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {

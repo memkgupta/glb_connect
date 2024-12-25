@@ -239,26 +239,28 @@ export const getMyProjects = async(req:Request,res:Response,next:NextFunction)=>
              },
            {
                $project: {
-                 _id: 0,
+                 _id: 1,
                  upvoteCount: 1,
                  downvoteCount: 1,
-                 data:{
-                   category:1,
-                   title:1,
-                   banner:1,
-                   openForCollab:1,
-                   tags:1,
-                   technologiesUsed:1,
-                   updatedAt:1,
+                 details:{
+                   category:"$data.category",
+                   title:"$data.title",
+                   banner:"$data.banner",
+                   openForCollab:"$data.openForCollab",
+                   tags:"$data.tags",
+                   technologiesUsed:"$data.technologiesUsed",
+                   updatedAt:"$data.updatedAt",
                   }
                },
              },
              {$limit:limit},
              {$skip:(page-1)*limit}
        ]);
+       const totalProjects = await Project.find({user:user._id}).countDocuments();
        res.status(200).json({
            success:true,
-           projects:projects
+           projects:projects,
+           totalProjects:totalProjects
        });
    } catch (error) {
        console.error(error);

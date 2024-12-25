@@ -22,7 +22,7 @@ export const createProject =  async(req:Request,res:Response,next:NextFunction)=
         }
         const project = new Project({
            ...data,user:user._id,lead:user.name,contributors:[
-            {username:user.username,role:"ADMIN"}
+            {user:user._id,role:"ADMIN"}
            ]
 
         });
@@ -50,7 +50,7 @@ export const updateProject = async(req:Request,res:Response,next:NextFunction)=>
         if(!project){
             return next(new BadRequestError("Invalid project id"));
         }
-        if(project.user!=user._id){
+        if(!project.user?.equals(user._id)){
             return next(new ForbiddenError("Access denied"))
         }
         const updateFields:{
@@ -81,10 +81,12 @@ export const updateProject = async(req:Request,res:Response,next:NextFunction)=>
                 return next(new BadRequestError("Error: Fields can't be updated "))
             }
         });
-       await project.updateOne(
+        console.log(updateFields)
+    const p =  await Project.updateOne(
             {_id:project._id},
             updateFields
         );
+
         res.status(200).json({success:true,message:"Project updated successfully"});
     } catch (error) {
         console.log(error);
@@ -94,10 +96,14 @@ export const updateProject = async(req:Request,res:Response,next:NextFunction)=>
 export const getProjectById = async(req:Request,res:Response,next:NextFunction)=>{
     const pid = req.query.pid;
     try {
+      const p = await Project.findById(pid);
+      if(!p){
+        return next(new NotFoundError("Project not found"))
+      }
         const project = await Project.aggregate([
             {
               $match: {
-                _id: new Schema(pid),
+                _id: p._id,
               },
             },
             {
@@ -109,34 +115,31 @@ export const getProjectById = async(req:Request,res:Response,next:NextFunction)=
               },
             },
             {
-              $unwind: '$contributors',
-            },
-            {
               $lookup: {
                 from: 'users',
                 localField: 'contributors.user',
                 foreignField: '_id',
-                as: 'contributors.userDetails',
+                as: 'contributors',
               },
             },
             {
               $project: {
-                title: { $first: '$title' },
-                category: { $first: '$category' },
-                description: { $first: '$description' },
-                banner: { $first: '$banner' },
-                images: { $first: '$images' },
-                openForCollab: { $first: '$openForCollab' },
-                start: { $first: '$start' },
-                end: { $first: '$end' },
-                documentation: { $first: '$documentation' },
-                demo: { $first: '$demo' },
-                currently_working: { $first: '$currently_working' },
-                tags: { $first: '$tags' },
-                status: { $first: '$status' },
-                technologiesUsed: { $first: '$technologiesUsed' },
-                live_link: { $first: '$live_link' },
-                github: { $first: '$github' },
+                title: 1,
+                category:1,
+                description: 1,
+                banner:1,
+                images:1,
+                openForCollab: 1,
+                start: 1,
+                end: 1,
+                documentation: 1,
+                demo:1,
+                currently_working: 1,
+                tags:1,
+                status:1,
+                technologiesUsed: 1,
+                live_link: 1,
+                github: 1,
                 // Select only specific fields from the contributors array
                 contributors: {
                   $map: {
@@ -146,37 +149,16 @@ export const getProjectById = async(req:Request,res:Response,next:NextFunction)=
                       role: '$$contributor.role',
                       // Assuming 'userDetails' is populated and you want to select specific fields
                       user: {
-                        _id: { $arrayElemAt: ['$$contributor.userDetails', 0] }, // Get the populated user
-                        name: { $arrayElemAt: ['$$contributor.userDetails.name', 0] }, // Select specific user field (name in this case)
-                        email: { $arrayElemAt: ['$$contributor.userDetails.email', 0] }, // Example: email
+                        _id: "$$contributor._id", // Get the populated user
+                        name:"$$contributor.name", // Select specific user field (name in this case)
+                        email: "$$contributor.email", // Example: email
                       },
                     },
                   },
                 },
               },
             },
-            {
-              $group: {
-                _id: '$_id',
-                title: { $first: '$title' },
-                category: { $first: '$category' },
-                description: { $first: '$description' },
-                banner: { $first: '$banner' },
-                images: { $first: '$images' },
-                openForCollab: { $first: '$openForCollab' },
-                start: { $first: '$start' },
-                end: { $first: '$end' },
-                documentation: { $first: '$documentation' },
-                demo: { $first: '$demo' },
-                currently_working: { $first: '$currently_working' },
-                tags: { $first: '$tags' },
-                status: { $first: '$status' },
-                technologiesUsed: { $first: '$technologiesUsed' },
-                live_link: { $first: '$live_link' },
-                github: { $first: '$github' },
-                contributors: { $push: '$contributors' },
-              },
-            },
+       
           ]);
           
         if(project.length == 0){
@@ -214,14 +196,15 @@ try {
 }
 }
 export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
-    const params = req.params;
-    
+    const params = req.query;
+    console.log(params)
     let filters:any={}
       Object.keys(params).forEach((key)=>{
         if(key!="page" && key!="limit"){
             filters[key] = params[key];
         }
     })
+    console.log(filters)
     const page = parseInt((req.query.page || "1") as string);
     const skip = (page-1)*20;
     try {
@@ -267,7 +250,16 @@ export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
                   },
                 },
               },
-            
+              {
+                $replaceRoot: {
+                  newRoot: {
+                    $mergeObjects: [
+                      { upvoteCount: "$upvoteCount", downvoteCount: "$downvoteCount" },
+                      "$data", // Spread the `data` object into the parent
+                    ],
+                  },
+                },
+              },
             {
                 $project:{
                     _id:1,

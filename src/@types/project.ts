@@ -7,11 +7,12 @@ export type ProjectCreateRequestBody= {
     start:Date,
     end?:Date,
     currently_working:boolean,
-    tags:string[],
+    tags:string,
     status:String,
-    technologiesUsed:string[],
+    technologiesUsed:string,
     live_link:string,
-    github:string
+    github:string,
+
 }
 export type UpdateProjectBody = {
     updates:{

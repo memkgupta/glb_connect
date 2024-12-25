@@ -1,7 +1,7 @@
 import { UnauthorizedError } from "@errors/UnauthorizedError";
 import Resources from "@models/resource.model";
 import User from "@models/user.model";
-import { YTLecture } from "../@types/index";
+import { BulkResourceBody, YTLecture } from "../@types/index";
 import { NextFunction, Request, Response } from "express";
 import Playlists from "@models/playlist.model";
 import { InternalServerError } from "@errors/InternalServerError";
@@ -126,9 +126,9 @@ export const getResources = async (
   if (params.source) {
     filters.source = params.source as string;
   }
-  if(params.subject){
-    filters.subject = params.subject as string
-  }
+  // if(params.subject){
+  //   filters.subject = params.subject as string
+  // }
   console.log(filters); // You can remove this in production, just for debugging
 
   try {
@@ -231,7 +231,7 @@ export const postVote = async (
       userId: user._id,
       resourceId: resource._id,
     });
-
+console.log(isAlreadyVoted)
     if (isAlreadyVoted && isAlreadyVoted.voteType === type) {
       // If the user has already voted for this contribution with the same type, remove the vote
       await Vote.findByIdAndDelete(isAlreadyVoted._id);
@@ -239,6 +239,7 @@ export const postVote = async (
         success: true,
         message: "Vote removed",
       });
+  return;
     }
 
     // If a new vote or different vote, delete the old vote (if exists) and add the new one
@@ -333,7 +334,7 @@ const getUserData = async (userId: string, resourceId: string) => {
   if (!user) return { isVoted: null, tracker: null };
 
   const [isVoted, tracker] = await Promise.all([
-    Vote.findOne({ userId: user._id, contributionId: resourceId }),
+    Vote.findOne({ userId: user._id, resourceId: resourceId }),
     Progress.findOne({ user_id: user._id, resource_id: resourceId }),
   ]);
 
@@ -345,7 +346,7 @@ const getUserData = async (userId: string, resourceId: string) => {
  */
 const aggregateVotes = async (contributionId: mongoose.Types.ObjectId) => {
   const voteAggregation = await Vote.aggregate([
-    { $match: { contributionId } },
+    { $match: { resourceId:contributionId } },
     {
       $group: {
         _id: "$voteType",
@@ -417,13 +418,19 @@ export const getResourceById = async (
     const aggregatedResource = await Resources.aggregate(aggregationPipeline);
 
     // Fetch user-specific data if the user is authenticated
-    const userData = await getUserData(_user.userId, id);
+    let userData = null;
+    if(_user){
+      console.log(_user)
+     userData = await getUserData(_user.userId, id);
+    }
+     
 
     // Aggregate votes
     const votes = await aggregateVotes(resource._id);
 
     // Update resource based on user progress
-    if (userData.tracker && resource.type === "lectures") {
+    if (userData&&userData.tracker && resource.type === "lectures") {
+   
       markTakenLectures(aggregatedResource[0], userData.tracker);
     }
 
@@ -432,7 +439,8 @@ export const getResourceById = async (
       data: {
         resource: aggregatedResource[0],
         votes,
-        isVoted: userData.isVoted?.voteType || null,
+        // tracker:resource.type==="lectures" && userData &&userData.tracker && userData.tracker,
+        isVoted:userData&& userData.isVoted?.voteType || null,
       },
     });
   } catch (error) {
@@ -456,15 +464,74 @@ export const getMyContributions = async (
       return next(new ForbiddenError("Invalid session please login again"));
     }
     const contributions = await Resources.aggregate([
+   
       {
-        $match: {
-          contributor: user._id,
+        $match:{
+            contributor:user._id,
+        }
+
+    },
+    {
+      $lookup: {
+        as: "votes",
+        from: "votes", // The collection to join
+        localField: "_id", // Field in Contributions
+        foreignField: "resourceId", // Field in Votes collection
+      },
+    },
+    {
+      $unwind: {
+        path: "$votes",
+        preserveNullAndEmptyArrays: true, // Include documents even if there are no votes
+      },
+    },
+    {
+      $group: {
+        _id: "$_id", // Group by resource ID
+        data: { $first: "$$ROOT" }, // Get the first occurrence of the document
+        upvoteCount: {
+          $sum: {
+            $cond: [{ $eq: ["$votes.voteType", "up"] }, 1, 0], // Count upvotes
+          },
+        },
+        downvoteCount: {
+          $sum: {
+            $cond: [{ $eq: ["$votes.voteType", "down"] }, 1, 0], // Count downvotes
+          },
         },
       },
-      {
-        $limit: 10,
+    },
+    {
+      $replaceRoot: {
+        newRoot: {
+          $mergeObjects: [
+            { upvoteCount: "$upvoteCount", downvoteCount: "$downvoteCount" },
+            "$data", // Spread the `data` object into the parent
+          ],
+        },
       },
-      { $skip: skip },
+    },
+    {
+      $sort: {
+        upvoteCount: -1,
+        downvoteCount: 1,
+      },
+    },
+    { $limit: 20 },
+    { $skip: 0 },
+    {
+      $project: {
+        _id: 1,
+        upvoteCount: 1,
+        downvoteCount: 1,
+        branch: 1,
+        label: 1,
+        type: 1,
+        code: 1,
+        sessionYear: 1,
+        thumbnail: 1,
+      },
+    },
     ]);
     const totalContributions = await Resources.find({
       contributor: user._id,
@@ -480,4 +547,36 @@ export const editContribution = async(req:Request,res:Response,next:NextFunction
 }
 export const updatePlaylist = async(req:Request,res:Response,next:NextFunction)=>{
   // functionality of changing url , description or position of the playlist item
+}
+export const uploadBulkResource = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+  const _user = req.user;
+  const resources:BulkResourceBody[] = req.body;
+  try {
+    const user = await User.findById(_user.userId);
+    if(!user){
+      return next(new ForbiddenError("Invalid session , please login again"))
+    }
+  const resourcesUploaded =  await Resources.insertMany(
+      resources.map(res=>({
+label:res.label,
+branch:res.branch,
+thumbnail:res.thumbnail,
+code:res.code,
+collegeYear:res.collegeYear,
+university:'AKTU',
+type:res.type,
+contributor:user._id,
+file:res.file,
+source:res.source,
+sessionYear:res.sessionYear
+      }))
+    );
+    res.status(200).json({
+      success:true,message:"Resources uploaded successfully"
+    })
+  } catch (error) {
+    console.error(error);
+    return next(new InternalServerError("Some error occured"));
+  }
 }
