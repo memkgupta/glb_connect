@@ -9,6 +9,7 @@ export type FormField = {
   
  export type AddFormBody = {
     event:string,
+    type:string,
     formName: string; // Name of the form
     fields: FormField[]; // Array of fields
   };

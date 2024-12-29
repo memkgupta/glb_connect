@@ -24,15 +24,14 @@ const eventSchema = new Schema({
         form:{type:String}
     }],
     usingInternalRegistration:{type:Boolean,default:true},
-    registrationForm:{type:mongoose.Schema.Types.ObjectId,ref:'Forms'},
+    
     club:{type:Schema.Types.ObjectId,ref:'Club'}
 },{timestamps:true});
 const eventRegistrationSchema =new Schema({
     event:{type:Schema.Types.ObjectId,ref:'Event',required:true},
-   
     user:{type:Schema.Types.ObjectId,ref:'User',required:true},
     formSubmission:{type:Schema.Types.ObjectId,ref:'FormSubmission'},
-    applicationNote:{type:String,required:true},
+   
     entry_status:{type:String,default:'pending',enum:['pending','not','yes']},
     status:{type:String,default:'pending',enum:["pending","completed"]},
     registrationType:{type:String,enum:['volunteer','participant']},

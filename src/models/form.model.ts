@@ -1,13 +1,19 @@
 import mongoose from "mongoose";
 
 const formSchema = new mongoose.Schema({
+  event:{type:mongoose.Schema.Types.ObjectId,ref:'Event'},
     formName: {
       type: String,
       required: true,
     },
-    
+    enabled:{type:Boolean,default:true},
+    type:{type:String,required:true,default:'registration',enum:['registration','feedback','other']},
     fields: [
       {
+        _id:{
+          type:Number,
+          required:true
+        },
         fieldLabel: {
           type: String,  // Label for the field (e.g., 'Name', 'Motivation')
           required: true,

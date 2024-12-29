@@ -1,4 +1,4 @@
-import { addEvent, fetchFeedbacks, getEventById, getEventDashboardById, getEvents, getRegistrations, giveFeedback, registerForEvent, updateEvent, verifyPass, viewRegistrationById } from "@controllers/event.controller";
+import { addEvent, fetchFeedbacks, getAnalytics, getEventById, getEventDashboardById, getEvents, getRegistrations, getRegistrationStatus, giveFeedback, registerForEvent, updateEvent, verifyPass, viewRegistrationById } from "@controllers/event.controller";
 import { authenticate } from "@middlewares/auth.middleware";
 import { Router } from "express";
 
@@ -14,4 +14,6 @@ router.get('/registrations/:id',authenticate,viewRegistrationById);
 router.post('/feedback',authenticate,giveFeedback);
 router.get('/feedbacks',authenticate,fetchFeedbacks);
 router.put('/verify-pass',authenticate,verifyPass);
+router.get('/registration/status',authenticate,getRegistrationStatus);
+router.get('/admin/analytics',authenticate,getAnalytics)
 export default router;
