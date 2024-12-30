@@ -2,6 +2,8 @@ import { BadRequestError } from "@errors/BadRequestError";
 import { ForbiddenError } from "@errors/ForbiddenError";
 import { InternalServerError } from "@errors/InternalServerError";
 import { NotFoundError } from "@errors/NotFoundError";
+import { Event, EventRegistration } from "@models/event.model";
+import { Progress } from "@models/progress.model";
 import { Project } from "@models/project.model";
 import Resources from "@models/resource.model";
 import User from "@models/user.model";
@@ -340,4 +342,214 @@ res.status(200).json({success:true,contributions})
        console.error(error);
        return next(new InternalServerError("Some error occured"))
    }
+}
+export const getFeed = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+  const _user = req.user;
+  try {
+    const user = await User.findById(_user.userId);
+    if(!user){
+      return next(new ForbiddenError("Invalid session, please login again"))
+    }
+    const events = await Event.aggregate([{
+      $match:{
+        dateTime:{$gte:new Date()}
+      },
+      
+    },
+  {
+    $sort:{dateTime:1}
+  },
+  {$limit:5},
+  {$project:{
+    _id:1,
+    name:1,
+    dateTime:1,
+    location:1,
+    category:1,
+
+  }}
+  ]);
+  const registeredEvents = await EventRegistration.aggregate([{
+    $match:{
+     user:user._id,
+     status:"completed"
+    },
+    
+  },
+  {
+    $lookup:{
+      from:"events",
+      as:"event",
+     let:{eventId:"$event"},
+      pipeline:[
+        {
+          $match:{
+            $expr:{
+              $eq:["$$eventId","$_id"]
+            }
+          }
+        },
+        {$project:{
+  _id:1,
+  name:1,
+  dateTime:1,
+  location:1,
+  category:1,
+  
+}}
+      ]
+    }
+  },
+ {$unwind:"$event"}
+,{
+  $sort:{dateTime:1}
+},
+
+{$limit:5},
+ {$project: {
+   _id:1,
+
+  name:"$event.name",
+  dateTime:"$event.dateTime",
+  location:"$event.location",
+  category:"$event.category",
+  
+}
+ }
+]);
+  const resourceFilters:any = {}
+  if(user.year){
+    resourceFilters.collegeYear = user.year
+  }
+  if(user.branch){
+    resourceFilters.branch = user.branch;
+  }
+  const resources = await Resources.aggregate([
+    {$match:resourceFilters},
+    {$lookup:{
+      from:'votes',
+      as:'upvotes',
+      let:{resourceId:"$_id"},
+      pipeline:[
+        {$match:{
+          $expr:{
+            $eq:["$$resourceId","$resourceId"]
+          }
+        }},
+      
+      ]
+    }},
+    {$lookup:{
+      from:"users",
+      as:"userDetails",
+      localField:"contributor",
+      foreignField:"_id",
+    }}, {$unwind:"$userDetails"},
+   {
+    $addFields: {
+      tupvotes: { $size: '$upvotes' } // Calculate the size of the 'upvotes' array
+    }
+  },{
+     $sort: {
+       createdAt: 1
+     }
+  },
+    {$sort:{tupvotes:-1,}},
+{$limit:5},
+{$project:{
+  _id:1,
+  label:1,
+  type:1,
+  updatedAt:1,
+  uploadedBy:"$userDetails.name"
+}}
+  ])
+  const currentCourses = await Progress.aggregate([
+    {
+      $match:{
+        user_id:user._id
+      }
+    },
+    {
+      $lookup: {
+        from: "resources",
+        as: "course",
+        localField: "resource_id",
+        foreignField: "_id",
+      },
+    },
+    {
+      $unwind: "$course",
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "user_id",
+        foreignField: "_id",
+        as: "userDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$userDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "playlists",
+        as: "playlist",
+        localField: "course.playlist",
+        foreignField: "_id",
+      },
+    },
+    {
+      $unwind: {
+        path: "$playlist",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        takenLectures: {
+          $size: "$taken",
+        },
+        totalLectures: {
+          $size: "$playlist.lectures",
+        },
+      },
+    },
+    {
+      $sort: {
+        takenLectures: -1,
+      },
+    },
+    {
+      $limit: 5,
+    },
+    {
+      $project: {
+        _id: 1,
+        label: "$course.label",
+        source: "$course.source",
+        description: "$course.description",
+        uploadedBy: "$userDetails.name",
+        takenLectures: 1,
+        totalLectures: 1,
+      },
+    },
+  ])
+  const data = {
+    currentCourses,
+    registeredEvents,
+    upcomingEvents:events,
+    recentResources:resources,
+ 
+  }
+  res.status(200).json({success:true,data:data})
+  } catch (error) {
+    console.error(error)
+    return next(new InternalServerError("Some error occured"));
+  }
 }

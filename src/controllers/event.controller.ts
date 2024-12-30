@@ -1050,6 +1050,46 @@ return next(new ForbiddenError("Please complete your registration"))
     return next(new InternalServerError("Some error occured"));
   }
 };
+export const isRegistered = async(req:Request,res:Response,next:NextFunction)=>{
+ //@ts-ignore
+ const _user = req.user;
+ const eventId = req.query.eid;
+ // console.log(eventId);
+ try {
+   const user = await User.findById(_user.userId);
+   if (!user) {
+     return next(new BadRequestError("Invalid session"));
+   }
+   
+   const registration = await EventRegistration.findOne({
+    user:user._id,
+    event:eventId,
+    
+   })
+   // console.log(registration)
+   if (!registration) {
+     res
+       .status(200)
+       .json({
+         success: true,
+         registration: { status: "not-registered", rid: null },
+       });
+     return;
+   }
+   
+   res.status(200).json({
+     success: true,
+     registration: {
+       status: registration?.status,
+       rid: registration._id,
+       createdAt:registration.createdAt
+     },
+   });
+ } catch (error) {
+   console.error(error);
+   return next(new InternalServerError("Some error occured"));
+ }
+}
 export const getRegistrationStatus = async (
   req: Request,
   res: Response,

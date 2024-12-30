@@ -14,6 +14,8 @@ const userSchema = new Schema({
     role:{type:String,enum:["USER","ADMIN","CONTRIBUTOR","STUDENT","CLUB","DIRECTOR","HOD","FACULTY"],default:'USER'},
     bio:{type:String,default:''},
     college:{type:Schema.Types.ObjectId,ref:'College'},
+    branch:{type:String},
+    year:{type:String,enum:['1','2','3','4']},
     interests:[{type:String}],
     socials: [{type:String}],
 },{timestamps:true})

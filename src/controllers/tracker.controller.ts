@@ -256,7 +256,7 @@ export const updateProgress = async (
     if (!tracker) {
       return next(new NotFoundError("Tracker Not Found"));
     }
-
+//@ts-ignore
     const playlist = await Playlists.findById(tracker.resource_id.playlist);
     if (!playlist) {
       return next(new NotFoundError("Playlist not found"));

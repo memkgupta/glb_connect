@@ -4,6 +4,6 @@ const progressSchema = new mongoose.Schema({
     taken:[{type:mongoose.Schema.Types.ObjectId}],
     recent:{type:mongoose.Schema.Types.ObjectId},
     user_id:{type:mongoose.Schema.Types.ObjectId,ref:'User'}
-})
+},{timestamps:true})
 
-export const Progress = mongoose.models.Progress||mongoose.model("Progress",progressSchema);
+export const Progress =mongoose.model("Progress",progressSchema);
