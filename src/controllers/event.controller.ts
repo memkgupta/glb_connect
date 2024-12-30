@@ -14,6 +14,7 @@ import mongoose from "mongoose";
 import { date } from "zod";
 import { sendEventRegistrationEmail } from "../helpers/mail";
 import ClubMember from "@models/club/club.members";
+import { profile } from "console";
 
 export const getEvents = async (
   req: Request,
@@ -778,62 +779,97 @@ export const viewRegistrationById = async (
 ) => {
   //@ts-ignore
   const _user = req.user;
-  const { registration_id } = req.body;
+  const { id } = req.params;
   try {
     const user = await User.findById(_user.userId);
     if (!user) {
       return next(new ForbiddenError("Invalid session, please login again"));
     }
+    const registration_ = await EventRegistration.findById(id);
+    if(!registration_){
+      return next(new NotFoundError("Registration not found"))
+    }
     const registration = await EventRegistration.aggregate([
       {
         $match: {
-          _id: registration_id,
+          _id: registration_._id,
         },
       },
-      {
-        $lookup: {
-          from: "events",
-          as: "event",
-          localField: "event",
-          foreignField: "_id",
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          as: "user",
-          localField: "user",
-          foreignField: "_id",
-        },
-      },
-      {
-        $lookup: {
-          from: "formsubmissions",
-          as: "submission",
-          localField: "formSubmission",
-          foreignField: "_id",
-        },
-      },
-      {
-        $project: {
-          event: {
-            banner: 1,
-            name: 1,
-            description: 1,
-            dateTime: 1,
+      {$lookup: {
+        from: 'forms',
+        let :{eventId:"$event"},
+      as:'registrationForm',
+      pipeline:[
+        {
+          $match:{
+            $expr:{
+              $and:[
+                {$eq:["$$eventId","$event"]},
+                {$eq:["$type","registration"]}
+              ]
+           
+            },
+            
+          }
+        },{
+          $project:{
+            fields:1
+          }
+        }
+      ]
+      }},
+      {$lookup:{
+        from:"users",
+        as:"user",
+        localField:"user",
+        foreignField:"_id"
+      }},
+      {$unwind:"$user"},
+       {
+            $lookup: {
+              from: "events",
+              as: "event",
+              localField: "event",
+              foreignField: "_id",
+            },
           },
-          submission: {
-            submissionData: 1,
+          {$unwind:"$event"},
+    
+    
+          {
+            $lookup: {
+              from: "formsubmissions",
+              as: "submission",
+              localField: "formSubmission",
+              foreignField: "_id",
+            },
           },
-          applicationNote: 1,
-          status: 1,
-          registrationTimeStamp: 1,
-        },
-      },
+     {$unwind: "$submission"},
+          {
+            $project: {
+              registrationForm:1,
+              event: {
+                banner: 1,
+                name: 1,
+                description: 1,
+                dateTime: 1,
+              },
+              submission: {
+                submissionData: 1,
+              },
+              user:{
+                profile:1,
+                username:1,
+                email:1,
+                name:1
+              },
+              applicationNote: 1,
+              status: 1,
+              registrationTimeStamp: 1,
+            },
+          },
     ]);
-    if (!registration || registration.length < 1) {
-      return next(new NotFoundError("Registration not found"));
-    }
+
     res.status(200).json({
       success: true,
       data: registration[0],
@@ -1299,10 +1335,29 @@ export const getFormResponseById = async(req:Request,res:Response,next:NextFunct
      const formSubmission = await FormSubmission.aggregate([
       {
         $match:{
-          _id:new mongoose.Schema.ObjectId(sid!.toString())
+          _id:new mongoose.Types.ObjectId(sid!.toString())
         },
 
       },
+      {
+        $lookup:{
+          from:"forms",
+          as:"form",
+          localField:"formId",
+          foreignField:"_id"
+        }
+      },
+      {$unwind:"$form"},
+      {
+        $lookup:{
+          from:"events",
+          as:"event",
+          localField:"form.event",
+          foreignField:"_id",
+        }
+      },
+      {$unwind:"$event"},
+      
       {
         $lookup:{
           from:"users",
@@ -1311,11 +1366,20 @@ export const getFormResponseById = async(req:Request,res:Response,next:NextFunct
           foreignField:"_id"
         }
       },
+      {$unwind:"$userDetails"},
       {
         $project:{
           submissionData:1,
           submittedAt:1,
+          event:{
+            banner:1,
+            name:1,
+            description:1,
+            dateTime:1
+          },
+          form:1,
           userDetails:{
+            profile:1,
             username:1,
             name:1,
             email:1
