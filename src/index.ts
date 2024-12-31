@@ -17,7 +17,7 @@ import projectRouter from '@routes/project.routes'
 const app: Express = express();
 const port = process.env.PORT || 3000;
 app.use(cors({
-  origin: "http://localhost:3000", // Frontend URL
+  origin: process.env.FRONTEND, // Frontend URL
   credentials: true,
 }));
 app.use(cookieParser())
