@@ -23,7 +23,9 @@ app.use(cors({
 app.use(cookieParser())
 connect();
 app.use(express.json())
-
+app.get("/",(req,res)=>{
+  res.send("Hello world")
+})
 app.use("/api/v1/auth",authRouter)
 app.use("/api/v1/club",clubRouter)
 app.use("/api/v1/tracker",trackerRouter)
