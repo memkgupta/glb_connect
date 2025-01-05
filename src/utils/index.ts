@@ -12,5 +12,5 @@ export const verifyRefreshToken = (token: string) => {
   
   // Function to generate Refresh Token
   export const generateRefreshToken = (userId: string) => {
-    return jwt.sign({ userId },process.env.REFRESH_TOKEN_SECRET!, { expiresIn: '7d' });
+    return jwt.sign({ userId },process.env.REFRESH_TOKEN_SECRET!, { expiresIn: '30d' });
   };

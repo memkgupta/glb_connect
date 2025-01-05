@@ -193,7 +193,7 @@ export const getCourses = async (
 
     // Perform aggregation
     const courses = await Progress.aggregate([
-      { $match: { user: user._id } },
+      { $match: { user_id: user._id } },
       {
         $lookup: {
           from: "resources",

@@ -222,11 +222,12 @@ export const verify = async(req:Request,res:Response,next:NextFunction)=>{
     }
 }
 export const refreshToken = async(req:Request,res:Response,next:NextFunction)=>{
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.headers.authorization?.split(' ')[1];
     // const refreshToken = req.body.token;
 
     if (!refreshToken) {
        res.status(403).json({ success: false, message: 'Refresh token required' });
+       return;
     }
   
     // Verify the refresh token
