@@ -238,7 +238,7 @@ export const updateProgress = async (
   try {
     // Fetch session details
 
-   //@ts-ignore
+
        //@ts-ignore
         const _user = req.user;
     if (!_user) {

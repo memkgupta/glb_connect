@@ -114,6 +114,10 @@ export const getProjectById = async(req:Request,res:Response,next:NextFunction)=
                 foreignField: '_id',
               },
             },
+ {$unwind:{
+   path:"$admin",
+     preserveNullAndEmptyArrays: true
+ }},
             {
               $lookup: {
                 from: 'users',
@@ -131,6 +135,12 @@ export const getProjectById = async(req:Request,res:Response,next:NextFunction)=
                 images:1,
                 openForCollab: 1,
                 start: 1,
+                admin:{
+                  _id:1,
+                  name:1,
+                  email:1,
+                  profile:1
+                },
                 end: 1,
                 documentation: 1,
                 demo:1,
@@ -146,7 +156,7 @@ export const getProjectById = async(req:Request,res:Response,next:NextFunction)=
                     input: '$contributors',
                     as: 'contributor',
                     in: {
-                      role: '$$contributor.role',
+                     
                       // Assuming 'userDetails' is populated and you want to select specific fields
                       user: {
                         _id: "$$contributor._id", // Get the populated user
@@ -204,7 +214,7 @@ export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
             filters[key] = params[key];
         }
     })
-    console.log(filters)
+   
     const page = parseInt((req.query.page || "1") as string);
     const skip = (page-1)*20;
     try {
@@ -212,14 +222,18 @@ export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
             {
                 $match:filters
             },{
-               $lookup:{
+              
+              $lookup:{
                 from:'users',
                 as:'lead',
-                foreignField:'username',
-                localField:'lead'
+                foreignField:'_id',
+                localField:'user'
                } 
             },
-            {$unwind:"$lead"},
+            {$unwind:{
+              path:"$lead",
+              preserveNullAndEmptyArrays:true
+            }},
             {
                 $lookup: {
                   as: "votes",
@@ -279,7 +293,7 @@ export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
                   downvoteCount:1,
                 }
               },
-            {$limit:10},{$skip:skip}
+            {$limit:20},{$skip:skip}
         ])
         res.status(200).json({
             success:true,projects:projects

@@ -21,12 +21,12 @@ export const isUserNameValid = async (
   res: Response,
   next: NextFunction
 ) => {
-  const queryParams = req.query.search;
-
+  const queryParams = req.query.username;
+console.log(queryParams)
   try {
     // Validate query parameters with Zod schema
-    const result = UsernameQuerySchema.safeParse(queryParams);
-
+    const result = UsernameQuerySchema.safeParse({username:queryParams});
+    
     if (!result.success) {
       const usernameErrors = result.error.format().username?._errors || [];
       return next(new ValidationError("Not a valid username"));

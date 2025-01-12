@@ -282,7 +282,9 @@ const buildAggregationPipeline = (id: string, type: string) => {
         as: "contributor",
       },
     },
-    { $unwind: "$contributor" },
+    { $unwind: {
+      path:"$contributor",
+      preserveNullAndEmptyArrays: true} },
   ];
 
   if (type === "lectures") {

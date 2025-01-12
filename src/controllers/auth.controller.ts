@@ -134,9 +134,7 @@ export const login = async(req:Request,res:Response,next:NextFunction)=>{
     }
 }
 export const update = async(req:Request,res:Response,next:NextFunction)=>{
-  //@ts-ignore
-   //@ts-ignore
-       //@ts-ignore
+
         //@ts-ignore
         const _user = req.user;
     if(!_user){

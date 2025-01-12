@@ -7,7 +7,7 @@ const router = Router();
 router.post('/sign-up',signUp);
 router.post('/login',login);
 router.put('/update',authenticate,update)
-router.put('/verify',verify)
+router.post('/verify',verify)
 router.post('/refresh-token',refreshToken)
 router.post('/logout',authenticate,logout)
 router.get('/session',authenticate,session)
