@@ -11,6 +11,7 @@ import trackerRouter from "@routes/tracker.routes"
 import resourceRouter from "@routes/resource.routes"
 import utilRouter from "@routes/utils.routes"
 import cookieParser from 'cookie-parser'
+import uploadRouter from '@routes/upload.routes'
 import userRouter from '@routes/user.routes'
 import projectRouter from '@routes/project.routes'
 // dotenv.config();
@@ -35,6 +36,7 @@ app.use("/api/v1/forms",formRouter)
 app.use("/api/v1/utils",utilRouter)
 app.use("/api/v1/users",userRouter)
 app.use("/api/v1/projects",projectRouter)
+app.use("/api/v1/uploads",uploadRouter);
 app.use(errorHandler);
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
