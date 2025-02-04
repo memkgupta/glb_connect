@@ -64,22 +64,33 @@ export const getSubjects = async (
   next: NextFunction
 ) => {
   try {
-    const { year } = req.query;
+    const {year,branch,page,label } = req.query;
 
     // Build filters dynamically
-    const filters: { year?: string } = {};
+    const filters: { year?: string,branch?:string,label?:any} = {};
     if (year) {
       filters.year = year.toString();
     }
-
+if(branch){
+  filters.branch = branch as string;
+}
+if(label){
+  filters.label = {
+    $regex:label,$options:"i"
+  }
+}
     // Query the database with filters
     const subjects = await Subject.find(filters);
 
     // Map the results into desired format
     const formattedSubjects = subjects.map((option) => ({
+      _id:option._id,
       label: option.label,
       value: option.code,
       id: option.code,
+      year:parseInt(option.year),
+      code:option.code,
+      branch:option.code
     }));
 
     res.status(200).json({ success: true, subjects: formattedSubjects });

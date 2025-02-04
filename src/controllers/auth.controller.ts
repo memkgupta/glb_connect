@@ -304,7 +304,7 @@ export const session = async(req:Request,res:Response,next:NextFunction)=>{
     {
       return next(new ForbiddenError("Invalid session , Please login again"))
     }
-    res.status(200).json({ success:true,user:{email:user.email,name:user.name,username:user.username,verified:user.verified}})
+    res.status(200).json({ success:true,user:{email:user.email,name:user.name,username:user.username,verified:user.verified,role:user.role}})
   } catch (error) {
     console.error(error);
     return next(new InternalServerError("Some error occured"))

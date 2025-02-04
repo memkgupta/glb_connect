@@ -13,7 +13,6 @@ export const startUpload = async(req:Request,res:Response,next:NextFunction)=>{
         title:string,
         type:string,
         mimeType:string,
-        
         fileSize:string,
         protected:boolean,
     }}=req.body;
@@ -52,7 +51,7 @@ export const startUpload = async(req:Request,res:Response,next:NextFunction)=>{
         });
     const url =await putObject(key,metaData);
     console.log(url);
-     res.status(200).json({success:true,preSignedUrl:url,expiresIn:'30min',url:`${process.env.SERVER_URL||`http://localhost:8000`}/api/v1/uploads/public/get?id=${upload._id}`});
+     res.status(200).json({success:true,preSignedUrl:url,expiresIn:'30min',url:`${process.env.SERVER_URL||`http://localhost:8000`}/api/v1/uploads/public/${metaData.type=="resource"?"document/":""}get?id=${upload._id}`});
    } catch (error) {
     console.error(error);
     return next(new InternalServerError("Some error occured"))
@@ -68,7 +67,32 @@ export const getUpload = async(req:Request,res:Response,next:NextFunction)=>{
        
         // const url = await getObjecURL(upload.key);
         const url = `https://d1k9jx0t56dwsj.cloudfront.net/${upload.key}`
-        res.status(200).send(url);
+        res.status(200).setHeader('Cache-Control',"public,max-age=31536000,immutable").send(url);
+    } catch (error) {
+        
+        console.error(error);
+        return next(new InternalServerError("Some error occured"));
+
+    }
+}
+export const getDocument = async(req:Request,res:Response,next:NextFunction)=>{
+    const {id} = req.query;
+    try {
+        const upload = await Upload.findById(id);
+        if(!upload){
+            return next(new NotFoundError("Resource not found"))
+        }
+       
+        // const url = await getObjecURL(upload.key);
+        const url = `https://d1k9jx0t56dwsj.cloudfront.net/${upload.key}`
+        res.status(200).setHeader('Cache-Control',"public,max-age=31536000,immutable").json({
+            url:url,
+            metadata:{
+                mimeType:upload.mimeType,
+                size:upload.fileSize,
+                createdAt:upload.createdAt
+            }
+        });
     } catch (error) {
         
         console.error(error);

@@ -52,8 +52,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
   };
   
-  export const authorize = async(roles: UserRoles[]) => {
-    return async (req: Request, res: Response, next: NextFunction) => {
+  export const authorize = async(roles: UserRoles[],next:NextFunction,req:Request) => {
+   
       try {
         // Get user ID from the request object (added by authentication middleware)
         //@ts-ignore
@@ -66,6 +66,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         }
   
         // Find the user from the database to get their role
+        console.log(_user)
         const user = await User.findById(_user.userId);
         if (!user) {
           return next(new NotFoundError("User not found"));
@@ -80,4 +81,3 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         return next(new InternalServerError("Some error occured"));
       }
     };
-  };

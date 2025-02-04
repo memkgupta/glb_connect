@@ -6,6 +6,8 @@ const userSchema = new Schema({
     email:{type:String,required:true,unique:true},
     username:{type:String,required:true,unique:true},
     otp:{type:String},
+    isRemoved:{type:Boolean,default:false},
+    isBanned:{type:Boolean,default:false},
     verified:{type:Boolean,required:true,default:false},
     otpExpiry:{type:Date},
     lastOtpSent:{type:Date},

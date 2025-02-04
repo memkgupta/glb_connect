@@ -3,6 +3,12 @@ export const universities = [
     { "value": "AKTU", "label": "AKTU", "id": "AKTU" },
    
 ]
+export const collegeData = {
+  
+    name: "GL BAJAJ",
+    emailDomain: "glbitm.ac.in",
+    university: "AKTU"
+  }
 export const paperType = [
     {value:'end-sem',label:'Semester exams',id:'end-sem'},
     {value:'st',label:'Sessional Test',id:'st'},

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import express, { Express, Request, Response } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
 import cors from "cors"
 import connect from "@config/db";
 import { errorHandler } from "@middlewares/error.middleware";
@@ -14,6 +14,9 @@ import cookieParser from 'cookie-parser'
 import uploadRouter from '@routes/upload.routes'
 import userRouter from '@routes/user.routes'
 import projectRouter from '@routes/project.routes'
+import adminRouter from '@routes/admin.routes'
+import { authenticate, authorize } from "@middlewares/auth.middleware";
+import { UserRoles } from "./@types";
 // dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
@@ -37,6 +40,10 @@ app.use("/api/v1/utils",utilRouter)
 app.use("/api/v1/users",userRouter)
 app.use("/api/v1/projects",projectRouter)
 app.use("/api/v1/uploads",uploadRouter);
+app.use("/api/v1/admin",authenticate,async(req:Request,res:Response,next:NextFunction)=>{
+   await authorize([UserRoles.ADMIN],next,req);
+
+},adminRouter)
 app.use(errorHandler);
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);

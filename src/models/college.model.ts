@@ -7,5 +7,5 @@ emailDomain:{type:String,required:true},
 university:{type:String,required:true}
 });
 
-const College = mongoose.models.College||mongoose.model('College',collegeSchema);
+const College = mongoose.model('College',collegeSchema);
 export default College;

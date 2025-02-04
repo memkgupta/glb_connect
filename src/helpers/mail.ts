@@ -131,5 +131,32 @@ export async function sendEventRegistrationEmail(email:string,username:string,ev
     return {success:false,message:"Failed to send email"}
   }
 }
-
+export async function sendUserBannedEmail(email:string,username:string,reason:string):Promise<any>{
+    try {
+       await resend.emails.send({
+          from: 'glbconnect@mkdev.site',
+          to: email,
+          subject: 'You are Banned From Campus Connect',
+          html: `<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banned From campus connect</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="email-template">
+    <h1>You are banned from campus connect because , <span class="otp">${reason}</span>!</h1>
+  </div>
+</body>
+</html>`,
+        });
+    
+        
+    
+        return {success:true};
+      } catch (error) {
+        return {success:false,message:"Failed to send email"}
+      }
+}
 // export as
