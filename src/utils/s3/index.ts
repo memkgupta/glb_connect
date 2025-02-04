@@ -16,7 +16,7 @@ export async function getObjecURL(key:string){
         Key:key,
     });
     const url = cdnSigner({
-        url:`https://d1k9jx0t56dwsj.cloudfront.net/${key}`,
+        url:`${process.env.CDN_URL}/${key}`,
         dateLessThan:(new Date(Date.now()+30*60*1000)).toDateString(),
         keyPairId:process.env.CLOUDFRONT_KEY_PAIR_ID as string,
         privateKey:process.env.CLOUDFRONT_PRIVATE_KEY as string
