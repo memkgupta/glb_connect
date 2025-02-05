@@ -1,4 +1,4 @@
-import { addContributor, createProject, getProjectById, getProjectLogs, getProjects, postVote, removeContributor, removeProject, updateProject } from "@controllers/project.controller";
+import { addContributor, createProject, getCollaborationRequestStatus, getProjectById, getProjectLogs, getProjects, postVote, removeContributor, removeProject, sendCollabRequest, updateProject } from "@controllers/project.controller";
 import { authenticate } from "@middlewares/auth.middleware";
 import { Router } from "express";
 
@@ -13,5 +13,6 @@ router.get('/logs',getProjectLogs);
 router.get('/view',getProjectById)
 router.put('/contributor/add',authenticate,addContributor)
 router.put('/contributor/remove',authenticate,removeContributor)
-
+router.get('/collaborate/:id',authenticate,getCollaborationRequestStatus)
+router.post('/collaborate/:id',authenticate,sendCollabRequest)
 export default router

@@ -304,7 +304,7 @@ export const session = async(req:Request,res:Response,next:NextFunction)=>{
     {
       return next(new ForbiddenError("Invalid session , Please login again"))
     }
-    res.status(200).json({ success:true,user:{email:user.email,name:user.name,username:user.username,verified:user.verified,role:user.role}})
+    res.status(200).json({ success:true,user:{id:user._id,email:user.email,name:user.name,username:user.username,verified:user.verified,role:user.role}})
   } catch (error) {
     console.error(error);
     return next(new InternalServerError("Some error occured"))
@@ -319,7 +319,7 @@ export const me = async(req:Request,res:Response,next:NextFunction)=>{
       return next(new ForbiddenError("Invalid session Please login again"))
     }
     const isClubAdmin = await Club.findOne({admin:user._id});
-    const resp = {username:user.username,name:user.name,profile:user.profile,bio:user.bio,interest:user.interests,courses:[],events:[],socials:user.socials,isClubAdmin:isClubAdmin?true:false}
+    const resp = {id:user._id,username:user.username,name:user.name,profile:user.profile,bio:user.bio,interest:user.interests,courses:[],events:[],socials:user.socials,isClubAdmin:isClubAdmin?true:false}
  res.status(200).json({success:true,data:resp});
   } catch (error) {
     console.error(error);

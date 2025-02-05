@@ -31,12 +31,37 @@ const projectLogsSchema = new mongoose.Schema({
     description:{type:String,required:true},
     
 },{timestamps:true});
+const projectContributors = new mongoose.Schema({
+    user:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true},
+    project_id:{type:mongoose.Schema.Types.ObjectId,ref:'Project',required:true},
+    role:{type:String,required:true},
+    name:{type:String,required:true},
+    profile:{type:String},
+})
+const projectDocumentation = new mongoose.Schema({
+    project_id:{type:mongoose.Schema.Types.ObjectId,ref:"Project"},
+    sections:[{
+        index:{type:Number},
+        sectionId:{type:mongoose.Schema.Types.ObjectId,ref:"DocumentationSection"},
+    }],
 
+});
+const projectDocumentationSection = new mongoose.Schema({
+    project_id:{type:mongoose.Schema.Types.ObjectId,ref:"Project"},
+    parent:{type:mongoose.Schema.Types.ObjectId,ref:"DocumentSection"},
+    prev:{type:mongoose.Schema.Types.ObjectId,ref:"DocumentationSection"},
+    next:{type:mongoose.Schema.Types.ObjectId,ref:"DocumentationSection"},
+    title:{type:String,required:true},
+    description:{type:String,required:true},
+    articleRef:{type:mongoose.Schema.Types.ObjectId,ref:"Article"},
+    documentationId:{type:mongoose.Schema.Types.ObjectId,ref:"Documentation"}
+});
 const collabRequestSchema = new mongoose.Schema({
     project_id:{type:mongoose.Schema.Types.ObjectId,ref:'Project',required:true},
     user_id:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true},
     skills:[String],
-    isAccepted:{type:Boolean,default:false},
+    role:{type:String},
+   status:{type:String,enum:["Pending",'Accepted',"Rejected"],default:"Pending"},
     motive:{type:String,required:true},
     contact_no:{type:String},
     contact_email:{type:String}
@@ -45,3 +70,6 @@ const collabRequestSchema = new mongoose.Schema({
 export const Project =  mongoose.model("Project",projectSchema);
 export const ProjectLog = mongoose.model("ProjectLog",projectLogsSchema)
 export const CollabRequest = mongoose.model("CollabRequest",collabRequestSchema)
+export const ProjectContributor = mongoose.model("ProjectContributor",projectContributors);
+export const Documentaion = mongoose.model("Documentation",projectDocumentation)
+export const DocumentationSection = mongoose.model("DocumentationSection",projectDocumentationSection)
