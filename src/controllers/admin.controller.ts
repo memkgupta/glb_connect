@@ -12,7 +12,7 @@ import Subject from "@models/subject.model";
 import User from "@models/user.model";
 import { NextFunction, Request, Response } from "express";
 import mongoose, { Schema } from "mongoose";
-import { sendUserBannedEmail } from "src/helpers/mail";
+import { sendUserBannedEmail } from "../helpers/mail";
 
 export const dashboard = async (
   req: Request,
