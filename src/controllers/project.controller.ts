@@ -7,7 +7,7 @@ import { CollabRequest, Documentaion, DocumentationSection, Project, ProjectCont
 import User from "@models/user.model";
 import Vote from "@models/vote.model";
 import { NextFunction, Request, Response } from "express"
-import mongoose, { Schema } from "mongoose";
+import mongoose, { PipelineStage, Schema } from "mongoose";
 import { ProjectCreateRequestBody, UpdateProjectBody } from "src/@types/project";
 
 export const createProject =  async(req:Request,res:Response,next:NextFunction)=>{
@@ -192,7 +192,7 @@ try {
     if(!user){
         return next(new ForbiddenError("Invalid session , please login again"))
     }
-    const project = await Project.findByIdAndDelete(req.query.pid);
+    const project = await Project.findByIdAndDelete(req.params.pid);
     if(!project){
         return next(new NotFoundError("Project not found"))
     }
@@ -206,15 +206,30 @@ try {
 }
 }
 export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
-    const params = req.query;
-    console.log(params)
-    let filters:any={}
-      Object.keys(params).forEach((key)=>{
-        if(key!="page" && key!="limit"){
-            filters[key] = params[key];
-        }
-    })
+    const {
+      title,category,openForCollab,lead
+    } = req.query;
    
+    let filters:any={}
+    if(title){
+      filters.title = {
+        $regex:`^${title}`,
+        $options:"i"
+      }
+
+    }
+    if(category){
+      filters.category = category
+    }
+    if(openForCollab){
+      filters.openForCollab = openForCollab
+    }
+    if(lead){
+      filters.lead = {
+        $regex:`^${lead}`,
+        $options:"i"
+      }
+    }
     const page = parseInt((req.query.page || "1") as string);
     const skip = (page-1)*20;
     try {
@@ -229,6 +244,14 @@ export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
                 foreignField:'_id',
                 localField:'user'
                } 
+            },
+            {
+              $lookup:{
+                from:'projectcontributors',
+                as:'contributors',
+                foreignField:"project_id",
+                localField:"_id"
+              }
             },
             {$unwind:{
               path:"$lead",
@@ -283,6 +306,11 @@ export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
                         profile:1,
                         name:1
                     },
+                    contributors:{
+                      name:1,
+                      profile:1,
+                      role:1
+                    },
                     banner:1,
                     description:1,
                 }
@@ -304,7 +332,7 @@ export const getProjects = async(req:Request,res:Response,next:NextFunction)=>{
     }
 }
 export const getProjectLogs = async(req:Request,res:Response,next:NextFunction)=>{
-const pid = req.query.pid;
+const pid = req.params.pid;
 const page = parseInt((req.query.page || "1") as string)
 try {
     const project = await Project.findById(pid);
@@ -397,10 +425,45 @@ export const postVote = async (
     return next(new InternalServerError("Some error occured"));
   }
 };
+export const getContributors = async(req:Request,res:Response,next:NextFunction)=>{
+  const {username,name,role,page='1'} = req.query;
+  const filters:any = {}
+  if(username){
+    filters.username={
+      $regex:`^${username}`,
+      $options:"i"
+    }
+  }
+  if(name)
+  {
+    filters.name={
+      $regex:`^${name}`,
+      $options:"i"
+    }
+  }
+  if(role){
+    filters.role = role
+  }
+  try {
+    const aggregation:PipelineStage[] = [
+      {$match:filters},
+   
+      {$skip:(parseInt(page as string)-1)*20},
+      {$limit:20},
+      
+    ]
+    const contributors = await ProjectContributor.aggregate(aggregation);
+    const totalResults =await ProjectContributor.find(filters).countDocuments();
+    res.status(200).json({success:true,contributors:contributors,totalResults});
+  } catch (error) {
+    console.log(error);
+    return next(new InternalServerError("Some error occured"));    
+  }
+}
 export const addContributor = async(req:Request,res:Response,next:NextFunction)=>{
     //@ts-ignore
     const _user = req.user;
-    const {uid,role} = req.body;
+    const {uid,role,contact_email,contact_phone} = req.body;
     const projectId = req.query.pid;
     try {
         const user =await User.findById(_user.userId)
@@ -411,9 +474,7 @@ export const addContributor = async(req:Request,res:Response,next:NextFunction)=
         if(!project){
             return next(new BadRequestError("Invalid project id"))
         }
-        if(project.user!=user._id){
-            return next(new ForbiddenError("Access denied"))
-        }
+    
         const contributorUser  = await User.findById(uid);
         if(!contributorUser){
             return next(new BadRequestError("User id is invalid"))
@@ -423,6 +484,8 @@ export const addContributor = async(req:Request,res:Response,next:NextFunction)=
           project_id:project._id,
           role:role,
           name:contributorUser.name,
+          contact_email:contact_email,
+          contact_phone:contact_phone,
           profile:contributorUser.profile
         });
 
@@ -471,15 +534,12 @@ export const removeContributor = async(req:Request,res:Response,next:NextFunctio
 }
 export const editContributor = async(req:Request,res:Response,next:NextFunction)=>{
 
-  const {cid,role} = req.body;
+  const {cid,role,contact_email,contact_no} = req.body;
 
   try {
-     
-      
-     
-    
       const contributor = await ProjectContributor.findByIdAndUpdate(cid,{
-        role:role
+        role:role,
+        contact_email,contact_no
       });
 if(!contributor){
   return next(new BadRequestError("No such contributor exists"))
@@ -495,12 +555,54 @@ if(!contributor){
       return next(new InternalServerError("Some error occured"));
   }
 }
-
+export const getContributorById = async(req:Request,res:Response,next:NextFunction)=>{
+  try {
+    const cid = req.query.cid;
+    if(!cid){
+      return next(new BadRequestError("Contributor id is required"))
+    }
+    const contributor = await ProjectContributor.aggregate([
+      {$match:{
+        _id:new mongoose.Types.ObjectId(cid as string)
+      }},
+      {$lookup:{
+        from :"users",
+        as:"userDetails",
+        localField:"user",
+        foreignField:"_id"
+      }},
+      {
+        $project:{
+          project_id:1,
+          role:1,
+          contact_phone:1,
+          contact_email:1,
+          userDetails:{
+            name:1,
+            username:1,
+            profile:1,
+            branch:1,
+            year:1,
+            socials:1
+          }
+        }
+      }
+    ]);
+    if(!contributor || contributor.length<1){
+      return next(new BadRequestError("Contributor doesn't exists"))
+    }
+    res.status(200).json({
+      success:true,contributor:contributor[0]
+    })
+  } catch (error) {
+    
+  }
+}
 
 export const getCollaborationRequestStatus = async(req:Request,res:Response,next:NextFunction)=>{
   //@ts-ignore
   const _user = req.user;
-  const project_id = req.params.id;
+  const project_id = req.params.pid;
   try {
     const collaboration = await CollabRequest.findOne({
       user_id:_user.userId,
@@ -528,7 +630,7 @@ export const getCollaborationRequestStatus = async(req:Request,res:Response,next
 }  
 export const sendCollabRequest = async(req:Request,res:Response,next:NextFunction)=>{
   const {skills,motive,contact_no,contact_email} = req.body;
-  const project_id = req.params.id;
+  const project_id = req.query.pid;
   //@ts-ignore
   const _user = req.user;
   try {
@@ -555,12 +657,12 @@ export const sendCollabRequest = async(req:Request,res:Response,next:NextFunctio
   }
 }
 export const getProjectDashboard = async(req:Request,res:Response,next:NextFunction)=>{
-  const project_id = req.params.id;
+  const project_id = req.params.pid;
   try {
     const projectData = await Project.aggregate([
       {
         $match:{
-          _id:new mongoose.Types.ObjectId(project_id)
+          _id:new mongoose.Types.ObjectId(project_id as string)
         }
       },
       {
@@ -613,7 +715,7 @@ export const getProjectDashboard = async(req:Request,res:Response,next:NextFunct
     ]);
     res.status(200).json({
       success:true,
-      data:projectData
+      data:projectData[0]
     })
   } catch (error) {
     console.error(error);
@@ -621,10 +723,16 @@ export const getProjectDashboard = async(req:Request,res:Response,next:NextFunct
   }
 }
 export const getCollabRequests = async(req:Request,res:Response,next:NextFunction)=>{
-  const {skills,role,page} = req.body.filters;
+  const {skills,role,page,username,name} = req.query;
+  const projectId = req.query.pid;
+  if(!projectId){
+    return next(new BadRequestError
+      ("Project id is required")
+    )
+  }
   try {
     const filters:any = {
-
+      project_id:new mongoose.Types.ObjectId(projectId as string)
     }
     if(skills){
       filters.skills={
@@ -636,13 +744,25 @@ export const getCollabRequests = async(req:Request,res:Response,next:NextFunctio
         $in:role
       }
     }
+    if(username){
+      filters.username = {
+        $regex:`^${username}`,
+        $options:"i"
+      }
+    }
+    if(name){
+      filters.name = {
+        $regex:`^${name}`,
+        $options:"i"
+      }
+    }
     const collabRequests = await CollabRequest.aggregate([
 {
   $match:filters
 },
 
 {
-  $skip:(page-1)*20,
+  $skip:(parseInt(page as string || "1")-1)*20,
 },
 {$limit:20},
 {
@@ -651,6 +771,11 @@ export const getCollabRequests = async(req:Request,res:Response,next:NextFunctio
     skills:1,
     role:1,
     contact_no:1,
+    contact_email:1,
+    name:1,
+    username:1,
+    status:1,
+    createdAt:1,
     _id:1
   }
 }
@@ -689,11 +814,19 @@ export const getCollabRequestById = async(req:Request,res:Response,next:NextFunc
           motive:1,
           contact_no:1,
           contact_email:1,
-          userDetails:1
+          userDetails:{
+            name:1,
+            username:1,
+            profile:1,
+            _id:1,
+            socials:1,
+          },
+          createdAt:1,
         }
       }
     ]);
-    res.status(200).json({success:true,request:request});
+    
+    res.status(200).json({success:true,request:request[0]});
   } catch (error) {
     console.error(error);
     return next(new InternalServerError("Some error occured"))
@@ -716,7 +849,7 @@ try {
 }
 }
 export const addDocumentSection = async(req:Request,res:Response,next:NextFunction)=>{
-  const project_id = req.params.pid;
+  const project_id = req.query.pid;
   const data = req.body;
   try {
     let documentation = await Documentaion.findOne({
@@ -858,4 +991,7 @@ if(section.next){
     console.error(error);
     return next(new InternalServerError("Some error occured"));
   }
+}
+export const getDocumentationList = async(req:Request,res:Response,next:NextFunction)=>{
+  
 }

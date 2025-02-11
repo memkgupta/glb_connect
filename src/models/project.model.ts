@@ -36,7 +36,12 @@ const projectContributors = new mongoose.Schema({
     project_id:{type:mongoose.Schema.Types.ObjectId,ref:'Project',required:true},
     role:{type:String,required:true},
     name:{type:String,required:true},
+    username:{type:String},
+    contact_email:{type:String},
+    contact_phone:{type:String},
     profile:{type:String},
+},{
+   timestamps:true
 })
 const projectDocumentation = new mongoose.Schema({
     project_id:{type:mongoose.Schema.Types.ObjectId,ref:"Project"},

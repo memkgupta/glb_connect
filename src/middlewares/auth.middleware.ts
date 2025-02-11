@@ -6,6 +6,8 @@ import { UserRoles } from "../@types/index";
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { UnauthorizedError } from "@errors/UnauthorizedError";
+import { Project } from "@models/project.model";
+import { BadRequestError } from "@errors/BadRequestError";
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Get the token from Authorization header (Bearer token)
@@ -81,3 +83,34 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         return next(new InternalServerError("Some error occured"));
       }
     };
+
+export const projectAuhtorize = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+  const _user = req.user;
+  console.log(_user);
+  try {
+    if(!_user){
+      return next(new BadRequestError("Please login first"))
+    }
+    const user = await User.findById(_user.userId);
+    const projectId = req.query.pid || req.params.pid ;
+    if(!projectId){
+      return next(new BadRequestError("Invalid project id"))
+    }
+    if(!user){
+      return next(new ForbiddenError("Invalid session , please login again"))
+    }
+    const project = await Project.findById(projectId as string);
+    if(!project){
+      return next(new BadRequestError("Project not found"))
+    }
+    if(!project.user?.equals(user._id)){
+      return next(new ForbiddenError("You don't have permissions"))
+    }
+  } catch (error) {
+    console.error(error);
+    return next(new InternalServerError("Some error occured"))
+  }
+ 
+   next();
+}
