@@ -6,7 +6,7 @@ const router = Router();
 router.get('/',getProjects);
 router.post('/create',authenticate,createProject);
 router.put('/:pid',authenticate,projectAuhtorize,updateProject);
-router.get('/:pid',projectAuhtorize,getProjectById)
+router.get('/view',getProjectById)
 router.delete('/:pid',authenticate,projectAuhtorize,removeProject);
 router.post('/analytics/vote',authenticate,postVote)
 router.get('/:pid/dashboard',authenticate,projectAuhtorize,getProjectDashboard);
@@ -21,5 +21,5 @@ router.get('/collaborate/request/status/:id',authenticate,getCollaborationReques
 router.post('/collaborate/:id',authenticate,projectAuhtorize,sendCollabRequest)
 router.get('/collaborate/requests',authenticate,projectAuhtorize,getCollabRequests)
 router.get('/collaborate/requests/:id',authenticate,projectAuhtorize,getCollabRequestById)
-router.get('/')
+
 export default router
