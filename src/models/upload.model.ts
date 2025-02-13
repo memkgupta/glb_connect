@@ -18,7 +18,7 @@ export const extensions = [
 const uploadSchema = new Schema({
     title:{type:String,required:true},
     key:{type:String,unique:true,required:true},
-    type:{type:String,required:true,enum:["profile","resource","image"]},
+    type:{type:String,required:true,enum:["profile","resource","image","banner"]},
     mimeType:{type:String,required:true,enum:mimeTypes},
     fileSize:{type:Number,required:true},
     createdAt:{type:Date,default:Date.now()},

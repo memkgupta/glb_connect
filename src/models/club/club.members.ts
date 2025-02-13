@@ -6,6 +6,7 @@ const clubMemberSchema = new mongoose.Schema({
       ref: 'Club',  // Assuming there is a 'Club' schema
       required: true,
     },
+    name:{type:String},
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',  // Reference to the user/student
@@ -13,16 +14,15 @@ const clubMemberSchema = new mongoose.Schema({
     },
     role: {
       type: String,
-      enum: ['President', 'Vice President', 'Secretary', 'Treasurer', 'Member', 'Head','Applicant'],
+      enum: ['President', 'Vice President', 'Secretary', 'Treasurer', 'Member', 'Head'],
       default: 'Member',
     },
-    team:{
-        type:String,
-        required:true
+    teamId:{
+        type:mongoose.Schema.Types.ObjectId,ref:"ClubTeam",required:true
     },
     status: {
       type: String,
-      enum: ['Active',  'Inactive'], // Membership status
+      enum: ['Active',"Removed"], // Membership status
       default: 'Active',
     },
     joinedAt: {
@@ -30,7 +30,7 @@ const clubMemberSchema = new mongoose.Schema({
       default: Date.now,
     },
   
-  });
+});
 
-  const ClubMember =  mongoose.model('ClubMember',clubMemberSchema);
-  export default ClubMember
+const ClubMember =  mongoose.model('ClubMember',clubMemberSchema);
+export default ClubMember

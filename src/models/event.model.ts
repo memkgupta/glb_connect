@@ -24,8 +24,10 @@ const eventSchema = new Schema({
         form:{type:String}
     }],
     usingInternalRegistration:{type:Boolean,default:true},
-    
-    club:{type:Schema.Types.ObjectId,ref:'Club'}
+    status:{type:String},
+    isRemoved:{type:Boolean,default:false},
+    club:{type:Schema.Types.ObjectId,ref:'Club'},
+    organizer:{type:String}
 },{timestamps:true});
 const eventRegistrationSchema =new Schema({
     event:{type:Schema.Types.ObjectId,ref:'Event',required:true},

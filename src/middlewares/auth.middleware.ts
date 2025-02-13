@@ -8,6 +8,9 @@ import jwt, { JwtPayload } from 'jsonwebtoken'
 import { UnauthorizedError } from "@errors/UnauthorizedError";
 import { Project } from "@models/project.model";
 import { BadRequestError } from "@errors/BadRequestError";
+import Club from "@models/club/club.model";
+import { APIError } from "@errors/APIError";
+import mongoose from "mongoose";
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Get the token from Authorization header (Bearer token)
@@ -113,4 +116,43 @@ export const projectAuhtorize = async(req:Request,res:Response,next:NextFunction
   }
  
    next();
+}
+export const isClubAdmin = async(req:Request,res:Response,next:NextFunction)=>{
+ //@ts-ignore
+  const _user = req.user;
+
+  try {
+    if(!_user){
+      return next(new BadRequestError("Please login first"))
+    }
+    const user = await User.findById(_user.userId);
+    const clubId = req.query.club_id || req.params.club_id ;
+    if(!clubId){
+      return next(new BadRequestError("Invalid club id"))
+    }
+    if(!user){
+      return next(new ForbiddenError("Invalid session , please login again"))
+    }
+    const club = await Club.findById(clubId as string);
+    if(!club){
+      return next(new BadRequestError("Project not found"))
+    }
+    if(!club.admin?.equals(user._id)){
+      return next(new ForbiddenError("You don't have permissions"))
+    }
+  } catch (error) {
+    console.error(error);
+    return next(new InternalServerError("Some error occured"))
+  }
+ 
+   next();
+}
+
+export const isAuthorisedToPerformClubAction = async(member:string,resource:string|mongoose.Model<any>,resourceId:string,action:string)=>{
+try {
+  
+} catch (error) {
+  console.error(error);
+throw new APIError("Some error occured",500);
+}
 }
