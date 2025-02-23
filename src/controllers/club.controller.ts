@@ -8,6 +8,7 @@ import Club from "@models/club/club.model";
 import { Event } from "@models/event.model";
 import User from "@models/user.model";
 import { NextFunction, Request, Response } from "express";
+import mongoose from "mongoose";
 
 export const registerClub = async (
   req: Request,
@@ -232,16 +233,70 @@ export const myClub = async(req:Request,res:Response,next:NextFunction)=>{
     if (!user) {
       return next(new ForbiddenError("Invalid session please login again"));
     }
+const clubs = await ClubMember.aggregate([{
+$match:{
+    userId:user._id,
+    status:"Active"
+}
+},
+{$lookup:{
+  from:"clubs",
+  as:"club",
+  localField:"clubId",
+  foreignField:"_id"
+}},
+{$unwind:{
+  path:"$club",
+  preserveNullAndEmptyArrays:true
+}},
+{$lookup:{
+  from:'clubteams',
+  as:'team',
+  localField:"teamId",
+  foreignField:"_id"
+}},
+{
+  $unwind:{
+    path:"$team",
+    preserveNullAndEmptyArrays:true
+  }
+},
+{
+  $lookup:{
+    from:'clubpermissions',
+    as:'permissions',
+    let:{clubId:"$clubId",memberId:"$_id"},
+    pipeline:[
+      {
+        $match:{$expr:{
+          $and:[{$eq:["$club","$$clubId"]},{$eq:["$member","$$memberId"]}]
+          
+        }}
+      },
+      {$project:{
+        action:1,
+        resource:1
+      }}
+    ]
+  }
+},
+{$project:{
+  _id:"$clubId",
+  title:"$club.clubName",
+  role:"$role",
+  team:{
+      _id:"$team._id",
+      title:"$team.title",
+  },
+  member_id:"$_id",
+  permissions:{
+      action:"$permissions.action",
+      resource:"$prermissions.resource"
+  }
+}}
+]);
 
-    // Retrieve only the ID, name, and admin fields of the clubs where the user is the admin
-    const clubs = await Club.findOne(
-      { admin: user._id },
-      { _id: 1, clubName: 1, admin: 1 }
-    );
-
-    if (!clubs) {
-      return next(new NotFoundError("No registered club found"));
-    }
+    
 
     res.status(200).json({success:true,clubs:clubs});
     
@@ -263,11 +318,15 @@ export const viewClub = async(req:Request,res:Response,next:NextFunction)=>{
         $lookup:{
         from:'clubmembers',
         as:'members',
-        foreignField:'clubId',
-        localField:'_id',
+        let:{clubId:"$_id"},
+        pipeline:[
+          {$match:{
+            $expr:{$and:[{"$clubId":"$$clubId"},{"$status":"Active"}]}
+          }}
+        ]
       }
     },
-    {$unwind:"$members"},
+
     {
       $lookup:{
         from:'users',
@@ -303,5 +362,73 @@ export const viewClub = async(req:Request,res:Response,next:NextFunction)=>{
     })
   } catch (error) {
     
+  }
+}
+export const clubDashboard = async(req:Request,res:Response,next:NextFunction)=>{
+  const {club_id} = req.query;
+  try {
+    const club = await Club.aggregate([
+      {$match:{
+        _id:new mongoose.Types.ObjectId(club_id as string)
+      }},
+      {
+        $lookup:{
+          from:"clubmembers",
+          as:"members",
+          let:{clubId:"$_id"},
+          pipeline:[
+          {$match:{
+            $expr:{$and:[{$eq:["$clubId","$$clubId"]},{$eq:["$status","Active"]}]}
+          }}
+        ]
+        }
+      },
+     {
+      $lookup:{
+        from:"clubteams",
+        as:"teams",
+        foreignField:"club",
+        localField:"_id"
+      }
+     },
+     {
+      $project:{
+        details:{
+          _id:"$_id",
+          clubEmail:"$clubEmail",
+        clubName:"$clubName",
+        clubDescription:"$clubDescription",
+        clubLogo:"$clubLogo",
+        contactPhone:"$contactPhone",
+        isVerified:"$isVerified",
+        admin:"$admin",
+        },
+        members:{
+          _id:1,
+          clubId:1,
+            name:1,
+            userId:1,
+            role:1,
+            teamId:1,
+            status:1,
+            joinedAt:1,
+        },
+        teams:{
+          title:1,
+          club:1,
+          description:1,
+          status:1,
+          head:1,
+        }
+      },
+     
+     }
+    ])
+    res.status(200).json({
+      success:true,data:club[0]
+    })
+  } catch (error) {
+    console.error(error);
+    return next(new InternalServerError("Some error occured"));
   }
 }

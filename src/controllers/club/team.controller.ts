@@ -191,3 +191,45 @@ export const getTeamById = async(req:Request,res:Response,next:NextFunction)=>{
         return next(new InternalServerError("Some error occured"));
     }
 }
+export const getTeams = async(req:Request,res:Response,next:NextFunction)=>{
+    try {
+        const {club_id} = req.query;
+        const teams = await ClubTeam.aggregate([
+            {
+                $match:{
+                    club:new mongoose.Types.ObjectId(club_id as string)
+                }
+            },
+            {
+                $lookup:{
+                    from:'clubmembers',
+                    as:'head',
+                    localField:"head",
+                    foreignField:"_id"
+                }
+            },
+            {$unwind:{
+                path:"$head",
+                preserveNullAndEmptyArrays:true
+            }},
+            {
+                $project:{
+                      title:1,
+                        description:1,
+                        status:1,
+                        head:{
+                            name:1,
+                            userId:1,
+                            _id:1
+                        }
+                }
+            }
+        ]);
+        res.status(200).json({
+            success:true,teams:teams
+        })
+    } catch (error) {
+        console.error(error);
+        return next(new InternalServerError("Some error occured"));
+    }
+}

@@ -7,7 +7,11 @@ declare global {
             role?:{
                 havePermission:boolean,
                 resource_id:any|string
-            } // Add the user property here
+            },
+            member?:{
+                _id:string
+            }
+            // Add the user property here
         }
         
     }

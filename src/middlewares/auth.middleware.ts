@@ -11,6 +11,8 @@ import { BadRequestError } from "@errors/BadRequestError";
 import Club from "@models/club/club.model";
 import { APIError } from "@errors/APIError";
 import mongoose from "mongoose";
+import ClubMember from "@models/club/club.members";
+import ClubTeam from "@models/club/club.team.model";
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Get the token from Authorization header (Bearer token)
@@ -147,7 +149,33 @@ export const isClubAdmin = async(req:Request,res:Response,next:NextFunction)=>{
  
    next();
 }
+export const isClubMember = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore 
+  const _user = req.user;
+  const club_id = req.query.club_id;
 
+  const member = await ClubMember.findOne({userId:_user.userId,clubId:club_id as string});
+  if(!member){
+    return next(new ForbiddenError("You don't have permission"));
+  }
+  // req.team = member.teamId;
+  //@ts-ignore
+  req.member = {_id:member._id}
+  next();
+}
+export const isTeamLead = async(req:Request,res:Response,next:NextFunction)=>{
+  //@ts-ignore
+  const _user = req.user;
+  const club_id = req.query.club_id;
+  const team_id = req.query.team_id;
+  const team  = await ClubTeam.findById(team_id).populate('head');
+  if(!team){
+    return next(new NotFoundError("Team not found"))
+  }
+  if(!(team.head as any)?.userId.equals(_user.userId)){
+    return next(new ForbiddenError("Don;t have permission"));
+  } 
+}
 export const isAuthorisedToPerformClubAction = async(member:string,resource:string|mongoose.Model<any>,resourceId:string,action:string)=>{
 try {
   

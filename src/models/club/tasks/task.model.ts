@@ -4,7 +4,7 @@ const taskSchema = new mongoose.Schema({
     title:{type:String,required:true},
     description:{type:String,required:true},
     assignedTo:{type:mongoose.Schema.Types.ObjectId,ref:'ClubMember'},
-    status:{type:String,required:true,default:"to-do",enum:["to-do","in-progress","completed"]},
+    status:{type:String,required:true,default:"to-do",enum:["todo","in_progress","completed","backlog"]},
     attachements:[mongoose.Schema.Types.ObjectId],
     dueDate:{type:Date,required:true},
     completedAt:{type:Date},

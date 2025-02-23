@@ -14,8 +14,8 @@ const clubMemberSchema = new mongoose.Schema({
     },
     role: {
       type: String,
-      enum: ['President', 'Vice President', 'Secretary', 'Treasurer', 'Member', 'Head'],
-      default: 'Member',
+      enum: ['president', 'vice-president', 'team-member', 'team-lead'],
+      default: 'team-member',
     },
     teamId:{
         type:mongoose.Schema.Types.ObjectId,ref:"ClubTeam",required:true

@@ -1,18 +1,24 @@
+import { BadRequestError } from "@errors/BadRequestError";
+import { ForbiddenError } from "@errors/ForbiddenError";
 import { InternalServerError } from "@errors/InternalServerError";
 import { NotFoundError } from "@errors/NotFoundError";
+import ClubMember from "@models/club/club.members";
 import ClubTask, { TaskComment } from "@models/club/tasks/task.model";
 import { NextFunction, Request, Response } from "express";
-import mongoose from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 
 export const assignTask = async(req:Request,res:Response,next:NextFunction)=>{
-    const {title,description,assignedTo,status,attachements,dueDate,teamId,priority,assignedBy} =req.body;
+    const {title,description,assignedTo,status,attachements,event_id,dueDate,teamId,priority,eventId} =req.body;
     try {
+        //@ts-ignore
+        const member = req.member;
         const task = await ClubTask.create({
             title:title,
             description:description,
-            assignedBy:assignedBy,
+            assignedBy:member?._id,
             assignedTo:assignedTo,
             status:status,
+            event:event_id,
             attachements:attachements,
             priority:priority,
             teamId:teamId,
@@ -29,7 +35,7 @@ export const assignTask = async(req:Request,res:Response,next:NextFunction)=>{
 }
 
 export const deleteTask = async(req:Request,res:Response,next:NextFunction)=>{
-    const {task_id} = req.query;
+    const task_id = req.params.id;
     try {
         
         const task = await ClubTask.findByIdAndDelete(task_id)
@@ -44,7 +50,7 @@ export const deleteTask = async(req:Request,res:Response,next:NextFunction)=>{
     }
 }
 export const updateTask = async(req:Request,res:Response,next:NextFunction)=>{
-    const {task_id} = req.query;
+    const task_id = req.params.id
     const {
         title,description,assignedTo,status,attachements,dueDate,priority
     } = req.body;
@@ -134,7 +140,7 @@ export const getMyTasks = async(req:Request,res:Response,next:NextFunction)=>{
             }
         ]) 
         const totalTasks = await ClubTask.find(filters).countDocuments()
-        res.status(200).json({success:true,tasks:1,totalResults:totalTasks})
+        res.status(200).json({success:true,tasks:tasks,totalResults:totalTasks})
     } catch (error) {
         console.error(error)
         return next(new InternalServerError("Some error occured"))
@@ -157,7 +163,7 @@ export const addComment = async(req:Request,res:Response,next:NextFunction)=>{
 }
 export const getTaskById = async(req:Request,res:Response,next:NextFunction)=>{
     try {
-        const {task_id} = req.query
+        const task_id = req.params.id;
         const task = await ClubTask.aggregate([{
             $match:{
                 _id:new mongoose.Types.ObjectId(task_id as string)
@@ -259,9 +265,9 @@ export const completeTask = async(req:Request,res:Response,next:NextFunction)=>{
             return next(new NotFoundError("Task not found"))
         }
         task.completionComment = comment;
-        task.attachements.push(attachements);
+        task.attachements=(attachements);
         task.completedAt = new Date()
-
+        task.status ="completed"
         await task.save();
 
         res.status(200).json({success:true,message:"Task completed"});
@@ -273,19 +279,22 @@ export const completeTask = async(req:Request,res:Response,next:NextFunction)=>{
 export const getEventTasks = async(req:Request,res:Response,next:NextFunction)=>{
 const {event_id,page,team} = req.query;
 try{
+    
+    //@ts-ignore
+    const _user = req.user;
     const filters:any={}
     if(team){
         filters.teamId = new mongoose.Types.ObjectId(team as string)
     }
-    const tasks = await ClubTask.aggregate([
+    const role = req.query.role;
+    if(!role){
+        return next(new BadRequestError("Bad request"));
+    }
+    const aggregation:PipelineStage[] = [
         {
             $match:{...filters,
                 event:new mongoose.Types.ObjectId(event_id as string),
             }
-        },{
-            $skip:(parseInt(page!.toString())-1)*20
-        },{
-            $limit:20
         },
         {
             $lookup:{
@@ -295,22 +304,89 @@ try{
                 foreignField:"_id"
             }
         },
+        {$unwind:{
+            path:"$assignedBy"
+        }},
         {
-            $project:{
-                title:1,
-                description:1,
-                assignedBy:{
-                    role:1,
-                    name:1,
-                    _id:1
-                },
-                status:1,
-                dueDate:1,
-                priority:1,
-                
+            $lookup:{
+                from:"clubmembers",
+                as:'assignedTo',
+                localField:'assignedTo',
+                foreignField:'_id'
+            }
+        },
+        {$unwind:{
+            path:"$assignedTo"
+        }},
+        {$lookup:{
+            from:"clubteams",
+            as:"team",
+            localField:"teamId",
+            foreignField:"_id"
+        }},
+        {
+            $unwind:{
+                path:"$team",
+                preserveNullAndEmptyArrays:true
             }
         }
-    ]) 
+       
+    ]
+    if(role?.toString()==="team-lead"){
+        const lead = await ClubMember.findOne({
+            userId:_user.userId
+        });
+        if(!lead){
+            return next(new ForbiddenError("Not authorised"))
+        }
+        aggregation.push({
+            $match:{
+                teamId:lead.teamId
+            }
+        })
+    }
+    if(role.toString()==="team-member"){
+        const member = await ClubMember.findOne({
+            userId:_user.userId
+        });
+        if(!member){
+            return next(new ForbiddenError("Not authorised"))
+        }
+        aggregation.push({
+            $match:{
+                "assignedTo._id":member._id
+            }
+        })
+    }
+    aggregation.push( {
+        $project:{
+            title:1,
+            description:1,
+            assignedBy:{
+                role:1,
+                name:1,
+                _id:1
+            },
+            assignedTo:{
+                role:1,
+                name:1,
+                _id:1
+            },
+            status:1,
+            dueDate:1,
+            priority:1,
+            completedAt:1,
+            completionComment:1,
+            team:{
+                _id:1,
+                title:1
+            }
+        }
+    })
+
+console.log(aggregation);
+    const tasks = await ClubTask.aggregate(aggregation);
+    res.status(200).json({success:true,tasks:tasks});
 }
 catch(error){
     console.error(error);

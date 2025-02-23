@@ -23,8 +23,8 @@ const eventSchema = new Schema({
         link:{type:String},
         form:{type:String}
     }],
-    usingInternalRegistration:{type:Boolean,default:true},
-    status:{type:String},
+    registrationForm:{type:mongoose.Schema.Types.ObjectId,ref:"form"},
+    status:{type:String,enum:["upcoming","completion-pending","completed"]},
     isRemoved:{type:Boolean,default:false},
     club:{type:Schema.Types.ObjectId,ref:'Club'},
     organizer:{type:String}
@@ -33,7 +33,6 @@ const eventRegistrationSchema =new Schema({
     event:{type:Schema.Types.ObjectId,ref:'Event',required:true},
     user:{type:Schema.Types.ObjectId,ref:'User',required:true},
     formSubmission:{type:Schema.Types.ObjectId,ref:'FormSubmission'},
-   
     entry_status:{type:String,default:'pending',enum:['pending','not','yes']},
     status:{type:String,default:'pending',enum:["pending","completed"]},
     registrationType:{type:String,enum:['volunteer','participant']},

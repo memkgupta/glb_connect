@@ -4,7 +4,7 @@ import cors from "cors"
 import connect from "@config/db";
 import { errorHandler } from "@middlewares/error.middleware";
 import authRouter from "@routes/auth.routes"
-import clubRouter from "@routes/club.routes"
+import clubRouter from "@routes/club/club.routes"
 import eventRouter from "@routes/event.routes"
 import formRouter from "@routes/form.routes"
 import trackerRouter from "@routes/tracker.routes"
@@ -15,13 +15,17 @@ import uploadRouter from '@routes/upload.routes'
 import userRouter from '@routes/user.routes'
 import projectRouter from '@routes/project.routes'
 import adminRouter from '@routes/admin.routes'
+import clubEventRouter from "@routes/club/event.routes"
+import clubFormRouter from "@routes/club/forms.routes"
+import clubTeamRouter from "@routes/club/team.routes"
+import clubTaskRouter from "@routes/club/tasks.routes"
 import { authenticate, authorize } from "@middlewares/auth.middleware";
 import { UserRoles } from "./@types";
 // dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 app.use(cors({
-  origin: "http://localhost:3000", // Frontend URL
+  origin: ["http://localhost:3000","https://campusconnected.vercel.app"], // Frontend URL
   credentials: true,
 }));
 app.use(cookieParser())
@@ -32,6 +36,10 @@ app.get("/",(req,res)=>{
 })
 app.use("/api/v1/auth",authRouter)
 app.use("/api/v1/club",clubRouter)
+app.use("/api/v1/club/events",clubEventRouter)
+app.use("/api/v1/club/teams",clubTeamRouter)
+app.use("/api/v1/club/forms",clubFormRouter)
+app.use("/api/v1/club/tasks",clubTaskRouter)
 app.use("/api/v1/tracker",trackerRouter)
 app.use("/api/v1/resources",resourceRouter)
 app.use("/api/v1/events",eventRouter)
