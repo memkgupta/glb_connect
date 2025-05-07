@@ -7,7 +7,7 @@ const formSchema = new mongoose.Schema({
       required: true,
     },
     enabled:{type:Boolean,default:true},
-    type:{type:String,required:true,default:'registration',enum:['registration','feedback','other']},
+    type:{type:String,default:'registration',enum:['registration','feedback','other']},
     fields: [
       {
         _id:{

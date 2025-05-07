@@ -6,10 +6,9 @@ const submissionSchema = new mongoose.Schema({
       ref: 'Form',
       required: true,
     },
-    studentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // Assuming a User schema for form submitters (e.g., students)
-      required: true,
+    submittedBy:{
+      type:mongoose.Schema.Types.ObjectId,
+      required:true,
     },
     submissionData: {
       type: Map,  // A map that stores fieldLabel: fieldValue pairs

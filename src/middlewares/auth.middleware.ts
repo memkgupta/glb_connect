@@ -30,7 +30,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       // Attach user info to request object for further use in next middleware
       //@ts-ignore
       req.user = {
-        userId:decoded.userId
+        userId:decoded.userId,
+        _id:decoded.userId
       };
       
       next(); 

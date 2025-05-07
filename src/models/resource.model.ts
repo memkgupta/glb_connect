@@ -8,6 +8,7 @@ const contributionSchema = new Schema({
     type:{type:String,enum:['pyq','notes','question-bank','lectures','short-notes','quantum']},
     code:{type:String,required:true},
     sessionYear:{type:String},
+    solution:{type:mongoose.Schema.Types.ObjectId,ref:"Solution"},
     source:{type:String},
     thumbnail:{type:String,},
     description:{type:String},

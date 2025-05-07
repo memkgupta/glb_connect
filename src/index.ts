@@ -5,7 +5,9 @@ import connect from "@config/db";
 import { errorHandler } from "@middlewares/error.middleware";
 import authRouter from "@routes/auth.routes"
 import clubRouter from "@routes/club/club.routes"
-import eventRouter from "@routes/event.routes"
+import eventRouter from "@routes/events/event.routes"
+import eventAdminRouter from "@routes/events/admin.routes"
+import eventRegistrationRoutes from "@routes/events/registration.routes"
 import formRouter from "@routes/form.routes"
 import trackerRouter from "@routes/tracker.routes"
 import resourceRouter from "@routes/resource.routes"
@@ -16,7 +18,8 @@ import userRouter from '@routes/user.routes'
 import projectRouter from '@routes/project.routes'
 import adminRouter from '@routes/admin.routes'
 import clubEventRouter from "@routes/club/event.routes"
-import clubFormRouter from "@routes/club/forms.routes"
+import eventFormRoutes from "@routes/events/forms.routes"
+import clubFormRouter from "@routes/events/forms.routes"
 import clubTeamRouter from "@routes/club/team.routes"
 import clubTaskRouter from "@routes/club/tasks.routes"
 import { authenticate, authorize } from "@middlewares/auth.middleware";
@@ -43,6 +46,9 @@ app.use("/api/v1/club/tasks",clubTaskRouter)
 app.use("/api/v1/tracker",trackerRouter)
 app.use("/api/v1/resources",resourceRouter)
 app.use("/api/v1/events",eventRouter)
+app.use("/api/v2/events/admin",eventAdminRouter)
+app.use("/api/v2/events/registrations",eventRegistrationRoutes)
+app.use("/api/v2/events/admin/forms",eventFormRoutes)
 app.use("/api/v1/forms",formRouter)
 app.use("/api/v1/utils",utilRouter)
 app.use("/api/v1/users",userRouter)

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  
   "scripts": {
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
     "start": "node dist/index.js",
@@ -30,7 +29,7 @@
     "resend": "^4.0.1",
     "tsconfig-paths": "^4.2.0",
     "uuid": "^11.0.3",
-    "zod": "^3.23.8"
+    "zod": "^3.24.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
