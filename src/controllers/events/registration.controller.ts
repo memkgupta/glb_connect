@@ -20,6 +20,7 @@ export const registerForEvent = async (
   //@ts-ignore
   const _user = req.user;
   const { event_id,registrationDetails } = req.body;
+  console.log(req.body)
   let user_id = null;
   try {
     if(_user){
@@ -60,7 +61,7 @@ export const registerForEvent = async (
     const registration = await EventRegistration.create({
       email:registrationDetails.email,
       user:user_id,
-      phone:registrationDetails.phoneNo,
+      phoneNo:registrationDetails.phoneNo,
       collegeDetails:registrationDetails.collegeDetails,
       name:registrationDetails.name,
 
@@ -144,7 +145,7 @@ export const fillRegistrationForm = async (
     res.status(200).json({
       success: true,
       message: "Registration successfull",
-      id: registration._id,
+      registration:registration
     });
   } catch (error) {
     console.error(error);
@@ -351,7 +352,7 @@ export const getMyRegistrationStatus = async (
 ) => {
   //@ts-ignore
   const _user = req.user;
-  const regId = req.query.rid;
+  const regId = req.query.regId;
   // console.log(eventId);
   try {
     const user = await User.findById(_user.userId);
@@ -360,22 +361,12 @@ export const getMyRegistrationStatus = async (
     }
 
     const registration = await EventRegistration.findById(regId);
-    // console.log(registration)
-    if (!registration) {
-      res.status(200).json({
-        success: true,
-        registration: { status: "not-registered", rid: null },
-      });
-      return;
-    }
+    console.log(registration)
+  
 
     res.status(200).json({
       success: true,
-      registration: {
-        status: registration?.status,
-        rid: registration._id,
-        createdAt: registration.createdAt,
-      },
+      registration: registration,
     });
   } catch (error) {
     console.error(error);

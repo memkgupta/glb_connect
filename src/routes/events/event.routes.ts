@@ -2,7 +2,7 @@
 
 import { getEventById, getEvents } from "@controllers/events/event.controller";
 import { getMyRegistrationStatus, giveFeedback, isRegistered, registerForEvent } from "@controllers/events/registration.controller";
-import { authenticate, isClubAdmin } from "@middlewares/auth.middleware";
+import { authenticate, isClubAdmin, optionalAuth } from "@middlewares/auth.middleware";
 import { Router } from "express";
 
 const router = Router();
@@ -10,7 +10,7 @@ const router = Router();
 router.get('/',getEvents);
 
 // fetching the event by id for the user
-router.get('/:id',getEventById);
+router.get('/:id',optionalAuth,getEventById);
 // register for a event
 
 

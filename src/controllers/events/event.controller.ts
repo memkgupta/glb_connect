@@ -3,7 +3,7 @@ import { ForbiddenError } from "@errors/ForbiddenError";
 import { InternalServerError } from "@errors/InternalServerError";
 import { NotFoundError } from "@errors/NotFoundError";
 
-import { Event, } from "@models/event.model";
+import { Event, EventRegistration, } from "@models/event.model";
 
 
 import { NextFunction, Request, response, Response } from "express";
@@ -141,6 +141,7 @@ export const getEventById = async (
   next: NextFunction
 ) => {
   const { id } = req.params;
+  const _user = req.user;
   try {
     const e = await Event.findById(id);
     if (!e) {
@@ -175,6 +176,7 @@ export const getEventById = async (
 
       {
         $project: {
+          _id:1,
          basicDetails:1,
          monetaryDetails:1,
          eventStructure:1,
@@ -193,62 +195,27 @@ export const getEventById = async (
         },
       },
     ]);
-    console.log({
-      $match: { _id: e._id },
-    },
-    {
-      $lookup: {
-        from: "clubs",
-        localField: "club",
-        foreignField: "_id",
-        as: "clubDetails",
-      },
-    },
-    {
-      $lookup: {
-        from: "forms",
-        localField: "_id",
-        foreignField: "event",
-        as: "forms",
-      },
-    },
 
-    {
-      $unwind: {
-        path: "$clubDetails",
-      },
-    },
-
-    {
-      $project: {
-        name: 1,
-        description: 1,
-        dateTime: 1,
-        location: 1,
-        category: 1,
-        banner: 1,
-
-        external_forms: 1,
-        maxCapacity: 1,
-        forms: {
-          _id: 1,
-          formName: 1,
-        },
-        clubDetails: {
-          clubLogo: 1,
-          _id: 1,
-          clubName: 1,
-        },
-      },
-    },)
     if (!event || event.length == 0) {
       return next(new NotFoundError("Event not found"));
     }
-
+    let registration = null;
+   
+    if(_user)
+    {
+      console.log(_user)
+      // console.log({user:_user._id,
+      //   event:event[0]._id})
+      registration    = await EventRegistration.findOne({
+        user:_user._id,
+        event:event[0]._id
+      })
+    }
+   
     res.status(200).json({
       success: true,
       data: event[0],
-      registered: null,
+      registered: registration?._id || "null",
     });
   } catch (error) {
     console.error(error);

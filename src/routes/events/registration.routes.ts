@@ -6,8 +6,8 @@ import { Router } from "express";
 
 const router = Router();
 
-router.get('/registration/status',authenticate,getMyRegistrationStatus);
-router.get('/registration/is-registered',authenticate,isRegistered)
+router.get('/status',authenticate,getMyRegistrationStatus);
+router.get('/is-registered',authenticate,isRegistered)
 router.post('/register',authenticate,registerForEvent)
 
 router.post('/feedback',authenticate,giveFeedback);

@@ -45,9 +45,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     if (token) {
       try {
         const decoded = jwt.verify(token!, process.env.ACCESS_TOKEN_SECRET!) as JwtPayload
+       console.log(decoded);
         //@ts-ignore
         req.user = {
-          userId:decoded.userId
+         _id:decoded.userId
         };
         next();
       } catch (error) {
