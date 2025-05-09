@@ -1,7 +1,7 @@
 
 import { getEventTasks } from "@controllers/club/tasks.controller";
 import { attachRegistrationForm, createEvent, fetchFeedbacks, getAnalytics, getCreatedEvents, getEventDashboardById, getEventRegistrations, togglePublish, updateEventDetails } from "@controllers/events/admin.controller";
-import { viewRegistrationById } from "@controllers/events/registration.controller";
+import { approveTeam, getTeamDetails, getTeams, viewRegistrationById } from "@controllers/events/registration.controller";
 import { authenticate, isClubAdmin, isClubMember, isTeamLead } from "@middlewares/auth.middleware";
 import { Router } from "express";
 
@@ -24,5 +24,7 @@ router.get('/all',authenticate,getCreatedEvents)
 // fetching the registration for a event with id
 router.get("/registrations/:id",authenticate,isClubAdmin,viewRegistrationById)
 // router.put("/attach-registration-form",authenticate,attachRegistrationForm)
-
+router.get("/teams",authenticate,getTeams)
+router.patch("/approve-team",authenticate,approveTeam)
+router.get("/teams/:tid",authenticate,getTeamDetails)
 export default router;

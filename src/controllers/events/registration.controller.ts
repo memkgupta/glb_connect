@@ -8,9 +8,13 @@ import FormSubmission from "@models/form.submission.model";
 import User from "@models/user.model";
 import { NextFunction, Request, response, Response } from "express";
 import { sendEventRegistrationEmail,  sendNewTeamMemberMail } from "../../helpers/mail";
-import mongoose from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 import { v4 } from "uuid";
 import { UnauthorizedError } from "@errors/UnauthorizedError";
+import { authenticateEventOwner, fetchEventById } from "@services/events/event_service";
+import { stat } from "fs";
+import { fetchEventTeams, fetchTeamById } from "@services/events/teams";
+import { fetchRegistrationsOfTeam } from "@services/events/registrations";
 export const registerForEvent = async (
   req: Request,
   res: Response,
@@ -160,6 +164,9 @@ export const joinTeam = async(req:Request,res:Response,next:NextFunction)=>{
       if(!registration){
         return next(new NotFoundError("Registration doesn't exists"));
       }
+      if(registration.team){
+        return next(new BadRequestError("You are already registerd"));
+      }
       const team = await Team.findOne({
         code:team_code
       }).populate('lead');
@@ -167,8 +174,10 @@ export const joinTeam = async(req:Request,res:Response,next:NextFunction)=>{
         return next(new NotFoundError("Team doesn't exists"));
       }
       const event = registration.event as any
-
-      if(team.members.length>=(event.structure.teamRequirements.maximumStrength || 4)){
+if(!event.basicDetails.isTeamEvent){
+  return next(new BadRequestError("bad request"));
+}
+      if(team.members.length>=(event.eventStructure.teamRequirements.maximumStrength || 4)){
         return next(new BadRequestError("Team already full"));
       }
       const teamMember = await TeamMember.create({
@@ -177,12 +186,15 @@ export const joinTeam = async(req:Request,res:Response,next:NextFunction)=>{
         user:_user?.userId,
         registrationDetails:registration._id,
       });
+      team.members.push(teamMember._id);
+      await team.save();
       registration.team = team._id;
       await registration.save();
       await sendNewTeamMemberMail((team.lead as any)?.email,registration.name,team.name,{eventName:event.basicDetails.title,eventDate:event.basicDetails.startDate,venue:event.basicDetails.venue})
-      res.status(200).json({success:true,message:"Team joined successfully"});
+      res.status(200).json({success:true,message:"Team joined successfully",team:{_id:team._id}});
   }
   catch(error){
+    console.log(error);
     return next(new InternalServerError("Som error occured"));
   }
 }
@@ -214,6 +226,8 @@ export const createTeam = async(req:Request,res:Response,next:NextFunction)=>{
     team.lead = lead._id
     team.members.push(lead._id)
     await team.save();
+    registration.team = team._id;
+    await registration.save()
     res.status(200).json({
       success:true,message:"Team created ",team
     });
@@ -253,7 +267,7 @@ export const submitTeamForReview = async(req:Request,res:Response,next:NextFunct
     }
 team.status ="submitted";
 await team.save();
-res.status(200).json({success:true,message:"Team submitted"});
+res.status(200).json({success:true,message:"Team submitted",team:team});
   }
   catch(error)
   {
@@ -484,7 +498,7 @@ export const viewRegistrationById = async (
 export const approveTeam = async(req:Request,res:Response,next:NextFunction)=>{
   try{
     const _user = req.user;
-    const {team_id} = req.body;
+    const {team_id} = req.query;
     const team = await Team.findById(team_id).populate('event');
     const event = team?.event as any;
     if(!team){
@@ -494,7 +508,7 @@ export const approveTeam = async(req:Request,res:Response,next:NextFunction)=>{
     {
       return next(new UnauthorizedError("You are not allowed"));
     }
-    if(team.status!="approved")
+    if(team.status=="approved")
     {
       return next(new BadRequestError("Team already approved"))
     }
@@ -535,4 +549,115 @@ export const approveRegistration = async(req:Request,res:Response,next:NextFunct
   catch(error){
 return next(new InternalServerError("Some error occured"));
   }
+}
+export const getMyTeamDetails = async(req:Request,res:Response,next:NextFunction)=>{
+  try{
+    const {regId} = req.query;
+    const _user = req.user;
+    const reg = await EventRegistration.findById(regId);
+    if(!reg || !reg.team){
+      return next(new NotFoundError("No registration found"));
+    }
+    if(reg.user && !reg.user?.equals(_user._id))
+    {
+      return next(new UnauthorizedError("You are not authorised"))
+    }
+    const teamDetails = await Team.aggregate([
+      {
+        $match:{
+          _id:reg.team
+        }
+      },
+      {
+        $lookup:{
+          from:"teammembers",
+          as:"members",
+         let:{
+         memberIds:"$members"
+         },
+         pipeline:[
+          {
+            $match: {
+            $expr: {
+              $in: ["$_id", "$$memberIds"]
+            }
+          }
+          },
+          {
+            $lookup:{
+              from:"eventregistrations",
+              as:"registrationDetails",
+              localField:"registrationDetails",
+              foreignField:"_id"
+            }
+          },
+          {
+            $unwind:{
+              path:"$registrationDetails",
+              preserveNullAndEmptyArrays:true
+            }
+          }
+         ]
+        }
+      }
+    ]);
+    if(!teamDetails || teamDetails.length == 0)
+    {
+      return next(new NotFoundError("No team found"));
+    }
+      res.status(200).json({
+    success:true,team:teamDetails[0]
+  })
+  }
+  catch(error){
+    return next(new InternalServerError("Some error occured"));
+  }
+}
+
+export const getTeams = async(req:Request,res:Response,next:NextFunction)=>{
+  try{
+      const {event_id} =req.query;
+      if(!event_id){
+        return next(new BadRequestError("Bad request event_id is required"))
+      }
+      const _user = req.user;
+      const event = await fetchEventById(event_id as string);
+      if(event ==null)
+      {
+        return next(new NotFoundError("Event not found"));
+      }
+      const {name,approved,status,page} = req.query;
+      console.log(req.query)
+      const {teams,totalTeams} = await fetchEventTeams(event._id,{name,approved,status,page:parseInt(((page || "1" )as string))});
+      res.status(200).json({success:true,teams,totalTeams});
+     
+  }
+  catch(error)
+  {
+    console.log(error);
+    return next(new InternalServerError("Some error occured"))
+  }
+}
+export const getTeamDetails = async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+      const team_id = req.params.tid;
+      const {event_id} = req.query;
+      const _user = req.user;
+      if(!event_id || !team_id){
+        return next(new BadRequestError("Bad request"))
+      }
+      if(!(await authenticateEventOwner(event_id as string,_user._id))){
+        return next(new UnauthorizedError("You are not authorised"));
+      }
+    
+      const team =await fetchTeamById(new mongoose.Types.ObjectId(team_id as string));
+      const registrationDetails = await fetchRegistrationsOfTeam(team_id);
+ 
+      res.status(200).json({success:true,team,registrationDetails});
+    }
+    catch(error:any)
+    {
+      console.log(error)
+      return next(new InternalServerError("Some error occured"))
+    }
 }
