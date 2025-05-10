@@ -1,5 +1,5 @@
 import { eventCategories } from "../constants/index";
-import mongoose,{mongo, Schema} from "mongoose";
+import mongoose,{Document, mongo, Schema, Types} from "mongoose";
 const eventCategoriesEnum = eventCategories.map(categ=>categ.value);
 const eventSchema = new Schema({
     owner: { type: Schema.Types.ObjectId, required: true },
@@ -118,6 +118,7 @@ const teamMemberSchema = new Schema({
     event:{type:Schema.Types.ObjectId,ref:"Event",required:true},
     team:{type:Schema.Types.ObjectId,ref:"Team",required:true},
     user:{type:Schema.Types.ObjectId,ref:"User"},
+    isLead:{type:Boolean,default:false},
     registrationDetails:{type:Schema.Types.ObjectId,ref:"EventRegistration"},
 });
 const teamSchema = new Schema({
@@ -159,6 +160,97 @@ const tempUser = new Schema({
     email:{type:String,required:true},
     password:{type:String,required:true}
 })
+interface ILink {
+  title: string;
+  description: string;
+  url: string;
+}
+
+// Interface for Attachment
+interface IAttachment {
+  title: string;
+  url: string;
+}
+
+// Interface for EventAssignment
+export interface IEventAssignment extends Document {
+  event: Schema.Types.ObjectId;
+  title: string;
+  description: string;
+  leadOnly:boolean;
+  submissionDeadline: Date;
+  links?: ILink[];
+  form:Schema.Types.ObjectId;
+  attachements?: IAttachment[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+export interface IEventAssignmentSubmisssionSchema extends Document{
+    assignment:string,
+}
+// Schema for Link
+const linkSchema = new Schema<ILink>({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  url: { type: String, required: true },
+});
+
+// Schema for Attachment
+const attachementSchema = new Schema<IAttachment>({
+  title: { type: String, required: true },
+  url: { type: String, required: true },
+});
+
+// Main Schema for EventAssignment
+const eventAssignmentSchema = new Schema<IEventAssignment>(
+  {
+    event: { type: Schema.Types.ObjectId, ref: 'Event', required: true },
+    title: { type: String, required: true },
+    leadOnly:{type:Boolean,required:true,default:false},
+    description: { type: String, required: true },
+    submissionDeadline: { type: Date, required: true },
+    links: { type: [linkSchema], required: false },
+    form:{type:mongoose.Schema.Types.ObjectId,ref:"Form",required:true},
+    attachements: { type: [attachementSchema], required: false },
+  },
+  { timestamps: true }
+);
+export interface IEventAssignmentSubmission extends Document {
+  assignment: mongoose.Types.ObjectId;
+  formSubmission?: mongoose.Types.ObjectId;
+  member?: mongoose.Types.ObjectId;
+  team?:mongoose.Types.ObjectId;
+  registration?:mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const eventAssignmentSubmissionSchema = new Schema<IEventAssignmentSubmission>(
+  {
+    assignment: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: 'EventAssignment', // optionally add ref if needed
+    },
+    formSubmission: {
+      type: Schema.Types.ObjectId,
+      ref: 'FormSubmission',
+    },
+    team:{
+        type:Schema.Types.ObjectId,
+        ref:"Team"
+    },
+    registration:{
+        type:Schema.Types.ObjectId,
+        ref:"EventRegistration"
+    },
+    member: {
+      type: Schema.Types.ObjectId,
+      ref: 'TeamMember',
+    },
+  },
+  { timestamps: true }
+);
 export const EventAttendance = mongoose.model("EventAttendance",attendanceSchema);
 export const EventFeedback = mongoose.model('Feedback',feedbackSchema);
 export const Event =mongoose.model('Event',eventSchema);
@@ -167,3 +259,5 @@ export const RSVP = mongoose.models.RSVP||mongoose.model('RSVP',rsvpSchema);
 export const Team = mongoose.model("Team",teamSchema);
 export const TeamMember = mongoose.model("TeamMember",teamMemberSchema)
 export const TempUser = mongoose.model("TeamUser",tempUser)
+export const EventAssignmentSubmission = mongoose.model("EventAssignmentSubmission",eventAssignmentSubmissionSchema)
+export const EventAssignment = mongoose.model<IEventAssignment>("EventAssignment",eventAssignmentSchema)

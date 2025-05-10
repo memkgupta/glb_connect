@@ -1,6 +1,11 @@
-import mongoose from "mongoose";
-
-const submissionSchema = new mongoose.Schema({
+import mongoose, { Document, Model, Types } from "mongoose";
+export interface IFormSubmission extends Document {
+  formId: Types.ObjectId;
+  submittedBy: Types.ObjectId;
+  submissionData: Map<string, any>; // fieldLabel => fieldValue
+  submittedAt: Date;
+}
+const submissionSchema = new mongoose.Schema<IFormSubmission>({
     formId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Form',
@@ -21,6 +26,6 @@ const submissionSchema = new mongoose.Schema({
     },
   });
   
-  const FormSubmission = mongoose.model('FormSubmission', submissionSchema);
+  const FormSubmission:Model<IFormSubmission> = mongoose.model<IFormSubmission>('FormSubmission', submissionSchema);
 export default FormSubmission;
   

@@ -22,6 +22,7 @@ import eventFormRoutes from "@routes/events/forms.routes"
 import clubFormRouter from "@routes/events/forms.routes"
 import clubTeamRouter from "@routes/club/team.routes"
 import clubTaskRouter from "@routes/club/tasks.routes"
+import assignmentRouter from "@routes/events/assignment.routes"
 import { authenticate, authorize } from "@middlewares/auth.middleware";
 import { UserRoles } from "./@types";
 // dotenv.config();
@@ -49,6 +50,7 @@ app.use("/api/v1/events",eventRouter)
 app.use("/api/v2/events/admin",eventAdminRouter)
 app.use("/api/v2/events/registrations",eventRegistrationRoutes)
 app.use("/api/v2/events/admin/forms",eventFormRoutes)
+app.use("/api/v2/events/assignments",assignmentRouter)
 app.use("/api/v1/forms",formRouter)
 app.use("/api/v1/utils",utilRouter)
 app.use("/api/v1/users",userRouter)

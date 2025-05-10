@@ -11,7 +11,7 @@ export const fetchEventById:any =async(eventId:string|mongoose.Types.ObjectId)=>
     }
 }
 
-export const authenticateEventOwner = async(event_id:string,user_id:string)=>{
+export const authenticateEventOwner = async(event_id:string|mongoose.Types.ObjectId,user_id:string)=>{
         try{
             const event =await fetchEventById(event_id);
             if(!event){

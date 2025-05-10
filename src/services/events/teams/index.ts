@@ -1,4 +1,4 @@
-import { Team } from "@models/event.model";
+import { Team, TeamMember } from "@models/event.model";
 import mongoose, { PipelineStage } from "mongoose";
 
 export const fetchEventTeams = async (
@@ -96,4 +96,8 @@ console.log(team)
 catch(error:any){
     throw new Error(error.message);
 }
+}
+
+export const fetchMember = async(member_id:string)=>{
+  return await TeamMember.findById(member_id);
 }

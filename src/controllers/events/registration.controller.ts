@@ -4,7 +4,7 @@ import { InternalServerError } from "@errors/InternalServerError";
 import { NotFoundError } from "@errors/NotFoundError";
 import { Event, EventFeedback, EventRegistration, Team, TeamMember } from "@models/event.model";
 import Form from "@models/form.model";
-import FormSubmission from "@models/form.submission.model";
+import FormSubmission, { IFormSubmission } from "@models/form.submission.model";
 import User from "@models/user.model";
 import { NextFunction, Request, response, Response } from "express";
 import { sendEventRegistrationEmail,  sendNewTeamMemberMail } from "../../helpers/mail";
@@ -15,6 +15,7 @@ import { authenticateEventOwner, fetchEventById } from "@services/events/event_s
 import { stat } from "fs";
 import { fetchEventTeams, fetchTeamById } from "@services/events/teams";
 import { fetchRegistrationsOfTeam } from "@services/events/registrations";
+import { Types } from "mongoose";
 export const registerForEvent = async (
   req: Request,
   res: Response,
@@ -132,14 +133,14 @@ export const fillRegistrationForm = async (
       event: event?._id,
       type: "registration",
     });
-    const formSubmission = await FormSubmission.create({
+    const formSubmission:IFormSubmission = await FormSubmission.create({
       formId: form?._id,
       submittedBy:registration._id,
       submissionData: formData,
       submittedAt: new Date(),
     });
     registration.status = "completed";
-    registration.formSubmission = formSubmission._id;
+    registration.formSubmission = formSubmission._id as Types.ObjectId;
     await registration.save();
     await sendEventRegistrationEmail(registration.email, registration.name, {
       eventDate: event!.basicDetails!.startDate,
@@ -220,6 +221,7 @@ export const createTeam = async(req:Request,res:Response,next:NextFunction)=>{
     const lead = await TeamMember.create({
       event:registration.event,
       team:team._id,
+      isLead:true,
       user:req.user?._id,
       registrationDetails:registration._id
     })

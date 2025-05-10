@@ -59,3 +59,6 @@ registrations = registrations.map(registration => ({
         throw new Error(error.message)
     }
 }
+export const fetchRegistrationById = async(registration_id:string)=>{
+return await EventRegistration.findById(registration_id)
+}
