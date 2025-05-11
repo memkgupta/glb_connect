@@ -3,6 +3,7 @@ import { BadRequestError } from "@errors/BadRequestError";
 import { InternalServerError } from "@errors/InternalServerError";
 import { NotFoundError } from "@errors/NotFoundError";
 import { UnauthorizedError } from "@errors/UnauthorizedError";
+import { EventAssignment } from "@models/event.model";
 import { createAssignment, createAssignmentSubmission, fetchAssignmentById, fetchSubmissions, removeAssignment, updateAssignmentById } from "@services/events/assignment";
 import { authenticateEventOwner, fetchEventById } from "@services/events/event_service";
 import { asyncHandler } from "@utils/api/asyncHandler";
@@ -85,5 +86,39 @@ export const getTeamSubmissions = asyncHandler(
         }
         const submissions = await fetchSubmissions({team:team_id});
         res.status(200).json({success:true,submissions})
+    }
+)
+export const getAssignments = asyncHandler(
+    async(req:Request,res:Response,next:NextFunction)=>{
+        const {event_id} = req.query;
+        if(!event_id || (event_id as string).length==0)
+        {
+            throw new BadRequestError("Event id is required");
+        }
+        const assignments = await EventAssignment.find({
+            event:event_id
+        })
+        res.status(200).json({
+            success:true,
+            assignments
+        })
+        
+    }
+)
+export const getAssignmentById = asyncHandler(
+    async(req:Request,res:Response,next:NextFunction)=>{
+        const {id:assignment_id} = req.params
+        if(!assignment_id || (assignment_id as string).length == 0)
+        {
+            throw new BadRequestError("Assignment id is required")
+        }
+        const assignment = await fetchAssignmentById(assignment_id as string);
+        if(!assignment)
+        {
+            throw new NotFoundError("Assignment not found");
+        }
+    res.status(200).json({
+        success:true,assignment
+    })
     }
 )

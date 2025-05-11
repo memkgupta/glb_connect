@@ -52,7 +52,14 @@ export const getEventDashboardById = async (
           as: "forms",
         },
       },
-
+      {
+        $lookup:{
+          from:"eventassignments",
+          localField:"_id",
+          foreignField:"event",
+          as:"assignments"
+        }
+      }
     
       // {
       //   $project: {

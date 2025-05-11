@@ -118,7 +118,7 @@ export const fillRegistrationForm = async (
   next: NextFunction
 ) => {
 
-  const { registrationId, formData } = req.body;
+  const { registrationId, formData ,form_id} = req.body;
   try {
  
     const registration = await EventRegistration.findById(
@@ -129,29 +129,53 @@ export const fillRegistrationForm = async (
       return next(new BadRequestError("Event registration not exists"));
     }
     const event = await Event.findById(registration.event);
-    const form = await Form.findOne({
-      event: event?._id,
-      type: "registration",
-    });
+    if(!event)
+    {
+      return next(new NotFoundError("Event not found"))
+    }
+    const form = await Form.findById(form_id)
+    if(!form){
+      return next(new NotFoundError("Form not found"))
+    }
+    const isSubmissionExists = await FormSubmission.findOne({
+      formId:form._id,
+      submittedBy:registration._id
+    })
+console.log("bc",isSubmissionExists)
+    if(isSubmissionExists){
+      return next(new BadRequestError("Form already submitted"))
+    }
     const formSubmission:IFormSubmission = await FormSubmission.create({
       formId: form?._id,
       submittedBy:registration._id,
       submissionData: formData,
       submittedAt: new Date(),
     });
-    registration.status = "completed";
-    registration.formSubmission = formSubmission._id as Types.ObjectId;
-    await registration.save();
-    await sendEventRegistrationEmail(registration.email, registration.name, {
-      eventDate: event!.basicDetails!.startDate,
-      eventName: event!.basicDetails!.title,
-      venue: event!.basicDetails!.venue,
-    });
-    res.status(200).json({
-      success: true,
-      message: "Registration successfull",
-      registration:registration
-    });
+    if(event.registrationForm && event.registrationForm.equals(form._id))
+    {
+      registration.status = "completed";
+      registration.formSubmission = formSubmission._id as Types.ObjectId;
+      await registration.save();
+      await sendEventRegistrationEmail(registration.email, registration.name, {
+        eventDate: event!.basicDetails!.startDate,
+        eventName: event!.basicDetails!.title,
+        venue: event!.basicDetails!.venue,
+      });
+      res.status(200).json({
+        success: true,
+        message: "Registration  successfull",
+        registration:registration
+      });
+      return;
+    }
+    else{
+      res.status(200).json({
+        success:true,
+        message:"Form submitted",
+        submission:formSubmission._id
+      })
+    }
+
   } catch (error) {
     console.error(error);
     return next(new InternalServerError("Some error occured"));
@@ -375,14 +399,65 @@ export const getMyRegistrationStatus = async (
     if (!user) {
       return next(new BadRequestError("Invalid session"));
     }
+  if(!regId || (regId as string).length==0){
+    return next(new BadRequestError("Registration id is required"));
+  }
+    const registration = await EventRegistration.aggregate(
+        [
+          {$match:{
+    _id:new mongoose.Types.ObjectId(regId as string),
+            }},
+          {
+            $lookup:{
+              from:"teams",
+              let:{teamId:"$team"},
+              as:"team",
+              pipeline:[
+                {
+                  $match:{
+                    $expr:
+                        {
+                          $eq:["$_id","$$teamId"]
+                        }
+                  },
 
-    const registration = await EventRegistration.findById(regId);
-    console.log(registration)
+                },
+                {
+                  $lookup:{
+                    from:"teammembers",
+                    as:"members",
+                    let:{
+                      memberIds:"$members"
+                    },
+                    pipeline:[
+                      {
+                        $match: {
+                          $expr: {
+                            $in: ["$_id", "$$memberIds"]
+                          }
+                        }
+                      },
+
+
+                    ]
+                  }
+                }
+              ]
+
+            }
+          },
+          {$unwind:{
+            path:"$team",
+              preserveNullAndEmptyArrays:true
+            }}
+        ]
+    )
+
   
 
     res.status(200).json({
       success: true,
-      registration: registration,
+      registration: registration[0],
     });
   } catch (error) {
     console.error(error);
@@ -598,7 +673,19 @@ export const getMyTeamDetails = async(req:Request,res:Response,next:NextFunction
               path:"$registrationDetails",
               preserveNullAndEmptyArrays:true
             }
-          }
+          },
+           {
+             $project:{
+               _id:1,
+               user:1,
+               registrationDetails:{
+                 user:1,
+                 email:1,
+                 name:1
+               }
+
+             }
+           }
          ]
         }
       }

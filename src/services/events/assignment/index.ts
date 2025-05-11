@@ -46,7 +46,7 @@ export const updateAssignmentById = async(assignment_id:string,updatedAssignment
 
 // to be cached
 export const fetchAssignmentById = async(assignment_id:string)=>{
-    return await EventAssignment.findById(assignment_id);
+    return await EventAssignment.findById(assignment_id).populate('form');
 }
 
 export const createAssignmentSubmission = async(assignment_id:string,data:{
@@ -92,10 +92,19 @@ export const createAssignmentSubmission = async(assignment_id:string,data:{
 }
 
 export const fetchSubmissions = async(filters:any)=>{
-    const submissions:any = await EventAssignmentSubmission.find(filters).populate('formSubmission').populate("registration");
+    const submissions:any = await EventAssignmentSubmission.find(filters).populate('formSubmission').populate("registration").populate("assignment");
     submissions.forEach((s:any)=>{
         s.formSubmission = mapFormSubmissionWithLabel(s.formSubmission as any)
     })
-    return submissions;
+
+    return   submissions.reduce((acc:any,submission:any)=>{
+        const key = submission.assignment._id;
+        if(!acc[key])
+        {
+            acc[key]=[]
+        }
+        acc[key].push(submission);
+        return acc;
+    },{});
 }
 

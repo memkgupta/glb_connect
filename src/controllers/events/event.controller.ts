@@ -3,7 +3,7 @@ import { ForbiddenError } from "@errors/ForbiddenError";
 import { InternalServerError } from "@errors/InternalServerError";
 import { NotFoundError } from "@errors/NotFoundError";
 
-import { Event, EventRegistration, } from "@models/event.model";
+import {Event, EventAssignment, EventRegistration,} from "@models/event.model";
 
 
 import { NextFunction, Request, response, Response } from "express";
@@ -211,11 +211,20 @@ export const getEventById = async (
         event:event[0]._id
       })
     }
-   
+    let assignments:any = []
+    if(registration)
+    {
+       assignments = await EventAssignment.find(
+          {
+            event:event[0]._id,
+          }
+      )
+    }
     res.status(200).json({
       success: true,
       data: event[0],
       registered: registration?._id || "null",
+      assignments:assignments
     });
   } catch (error) {
     console.error(error);
