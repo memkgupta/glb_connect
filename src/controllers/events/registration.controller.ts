@@ -14,8 +14,9 @@ import { UnauthorizedError } from "@errors/UnauthorizedError";
 import { authenticateEventOwner, fetchEventById } from "@services/events/event_service";
 import { stat } from "fs";
 import { fetchEventTeams, fetchTeamById } from "@services/events/teams";
-import { fetchRegistrationsOfTeam } from "@services/events/registrations";
+import { fetchRegistrationsPaginated, fetchRegistrationsOfTeam, totalRegistrations } from "@services/events/registrations";
 import { Types } from "mongoose";
+import { asyncHandler } from "@utils/api/asyncHandler";
 export const registerForEvent = async (
   req: Request,
   res: Response,
@@ -750,3 +751,19 @@ export const getTeamDetails = async(req:Request,res:Response,next:NextFunction)=
       return next(new InternalServerError("Some error occured"))
     }
 }
+
+export const getMyRegistrations = asyncHandler(async(req:Request,res:Response,next:NextFunction)=>{
+  const user = req.user;
+  let {title,page} = req.query; 
+ const pageInt = parseInt(page ? page as string :"1");
+
+  const registrations = await fetchRegistrationsPaginated({
+    
+   title:{$regex:new RegExp(title as string,"i")}
+  },pageInt,new mongoose.Types.ObjectId(user._id))
+  const total = await totalRegistrations(    new mongoose.Types.ObjectId(user._id),{
+   
+    title:{$regex:new RegExp(title as string,"i")}
+  },)
+  res.status(200).json({success:true,registrations:registrations,total})
+})

@@ -455,22 +455,27 @@ export const getMyContributions = async (
   res: Response,
   next: NextFunction
 ) => {
- //@ts-ignore
-       //@ts-ignore
+
         const _user = req.user;
-  const page = req.query.page;
+  const {page,title,category} = req.query;
   const skip = (parseInt((page as string) || "1") - 1) * 10;
   try {
-    const user = await User.findById(_user.userId);
-    if (!user) {
-      return next(new ForbiddenError("Invalid session please login again"));
+
+    const filters:any = {
+      contributor:new mongoose.Types.ObjectId(_user._id)
+    }
+    if(title)
+    {
+      filters.label = {$regex:new RegExp(title as string,"i")}
+    }
+    if(category && (category as string !=""))
+    {
+      filters.type = category as string
     }
     const contributions = await Resources.aggregate([
    
       {
-        $match:{
-            contributor:user._id,
-        }
+        $match:filters
 
     },
     {
@@ -535,9 +540,7 @@ export const getMyContributions = async (
       },
     },
     ]);
-    const totalContributions = await Resources.find({
-      contributor: user._id,
-    }).countDocuments();
+    const totalContributions = await Resources.find(filters).countDocuments();
     res.status(200).json({ success: true, contributions, totalContributions });
   } catch (error) {
     console.log(error);

@@ -62,3 +62,114 @@ registrations = registrations.map(registration => ({
 export const fetchRegistrationById = async(registration_id:string)=>{
 return await EventRegistration.findById(registration_id)
 }
+
+export const fetchRegistrationsPaginated = async (
+  filters: any,
+  page: number = 1,
+  user: mongoose.Types.ObjectId
+) => {
+  const skip = (page - 1) * 50;
+
+  const registrations = await EventRegistration.aggregate([
+    {
+      $match: {
+        user: user,
+      },
+    },
+    {
+      $lookup: {
+        from: "events",
+        localField: "event",
+        foreignField: "_id",
+        as: "event",
+      },
+    },
+    {
+      $unwind: {
+        path: "$event",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $match: filters
+        ? Object.keys(filters).length > 0
+          ? Object.fromEntries(
+              Object.entries(filters).map(([key, value]) => [
+                `event.basicDetails.${key}`,
+                typeof value === "string" ? { $regex: value, $options: "i" } : value,
+              ])
+            )
+          : {}
+        : {},
+    },
+    {
+      $project: {
+        _id: 1,
+        event: {
+          _id: "$event._id",
+          basicDetails: "$event.basicDetails",
+        },
+        status: 1,
+        email: 1,
+        name: 1,
+      },
+    },
+    {
+      $skip: skip,
+    },
+    {
+      $limit: 50,
+    },
+  ]);
+
+  return registrations;
+};
+
+export const totalRegistrations = async (
+  user: mongoose.Types.ObjectId,
+  filters: any
+) => {
+  const matchStage: any = {
+    user: user,
+  };
+
+  const filterConditions =
+    filters && Object.keys(filters).length > 0
+      ? Object.fromEntries(
+          Object.entries(filters).map(([key, value]) => [
+            `event.basicDetails.${key}`,
+            typeof value === "string"
+              ? { $regex: value, $options: "i" }
+              : value,
+          ])
+        )
+      : {};
+
+  const result = await EventRegistration.aggregate([
+    {
+      $match: matchStage,
+    },
+    {
+      $lookup: {
+        from: "events",
+        localField: "event",
+        foreignField: "_id",
+        as: "event",
+      },
+    },
+    {
+      $unwind: {
+        path: "$event",
+        preserveNullAndEmptyArrays: false, // better fail if event doesn't exist
+      },
+    },
+    {
+      $match: filterConditions,
+    },
+    {
+      $count: "total",
+    },
+  ]);
+
+  return result[0]?.total || 0;
+};
