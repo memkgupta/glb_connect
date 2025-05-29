@@ -17,6 +17,7 @@ import { fetchEventTeams, fetchTeamById } from "@services/events/teams";
 import { fetchRegistrationsPaginated, fetchRegistrationsOfTeam, totalRegistrations } from "@services/events/registrations";
 import { Types } from "mongoose";
 import { asyncHandler } from "@utils/api/asyncHandler";
+import { generateSixDigitCodeFromUUID } from "@utils/index";
 export const registerForEvent = async (
   req: Request,
   res: Response,
@@ -70,7 +71,7 @@ export const registerForEvent = async (
       phoneNo:registrationDetails.phoneNo,
       collegeDetails:registrationDetails.collegeDetails,
       name:registrationDetails.name,
-
+      registrationCode:generateSixDigitCodeFromUUID(),
       registrationTimestamp: new Date(),
       event: event._id,
     });
@@ -761,7 +762,7 @@ export const getMyRegistrations = asyncHandler(async(req:Request,res:Response,ne
     
    title:{$regex:new RegExp(title as string,"i")}
   },pageInt,new mongoose.Types.ObjectId(user._id))
-  const total = await totalRegistrations(    new mongoose.Types.ObjectId(user._id),{
+  const total = await totalRegistrations(new mongoose.Types.ObjectId(user._id),{
    
     title:{$regex:new RegExp(title as string,"i")}
   },)

@@ -1,3 +1,6 @@
+import { APIError } from "@errors/APIError";
+import { InternalServerError } from "@errors/InternalServerError";
+import { NotFoundError } from "@errors/NotFoundError";
 import { EventRegistration } from "@models/event.model"
 import Form from "@models/form.model";
 import mongoose from "mongoose"
@@ -62,7 +65,21 @@ registrations = registrations.map(registration => ({
 export const fetchRegistrationById = async(registration_id:string)=>{
 return await EventRegistration.findById(registration_id)
 }
-
+export const fetchRegistration = async(params:any)=>{
+  try {
+    const reg = await EventRegistration.findOne(params);
+    if(!reg ){
+      throw new NotFoundError("Registration not found")
+    }
+    return reg;
+  } catch (error) {
+    if(error instanceof APIError)
+    {
+      throw error;
+    }
+    throw new InternalServerError("Something went wrong")
+  }
+}
 export const fetchRegistrationsPaginated = async (
   filters: any,
   page: number = 1,

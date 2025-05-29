@@ -7,7 +7,9 @@ import { Progress } from "@models/progress.model";
 import { Project } from "@models/project.model";
 import Resources from "@models/resource.model";
 import User from "@models/user.model";
+import { asyncHandler } from "@utils/api/asyncHandler";
 import { NextFunction, Request, Response } from "express";
+import { Types } from "mongoose";
 
 export const getUserByUsername =  async(req:Request,res:Response,next:NextFunction)=>{
     const username = req.query.username;
@@ -553,3 +555,152 @@ export const getFeed = async(req:Request,res:Response,next:NextFunction)=>{
     return next(new InternalServerError("Some error occured"));
   }
 }
+
+export const getDashboard = asyncHandler(
+  async(req:Request,res:Response,next:NextFunction)=>{
+    const _user =req.user;
+    const dashboard = await User.aggregate
+    (
+      [
+       
+         {
+    $match: {
+      _id: new Types.ObjectId(_user._id)
+    }
+  },
+  {
+    $lookup: {
+      from: "events",
+      let: { userId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$owner", "$$userId"] } } },
+        { $count: "count" }
+      ],
+      as: "events"
+    }
+  },
+  {
+    $lookup: {
+      from: "resources",
+      let: { userId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$contributor", "$$userId"] } } },
+        { $count: "count" }
+      ],
+      as: "resources"
+    }
+  },
+  {
+    $lookup: {
+      from: "projects",
+      let: { userId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$user", "$$userId"] } } },
+        { $count: "count" }
+      ],
+      as: "projects"
+    }
+  },
+  {
+    $addFields: {
+      eventCount: { $ifNull: [{ $arrayElemAt: ["$events.count", 0] }, 0] },
+      resourceCount: { $ifNull: [{ $arrayElemAt: ["$resources.count", 0] }, 0] },
+      projectCount: { $ifNull: [{ $arrayElemAt: ["$projects.count", 0] }, 0] }
+    }
+  },
+        {$project:{
+eventCount:1,
+resourceCount:1,
+projectCount:1
+        }}
+      ],
+      
+    );
+
+res.status(200).json({success:true ,dashboard:dashboard[0]})
+  }
+)
+export const getRecentActivity = asyncHandler(
+  
+  async(req:Request,res:Response,next:NextFunction)=>{
+    const _user = req.user;
+    const userId = new Types.ObjectId(_user._id)
+    const recentActivity = await Resources.aggregate([
+     { $match: { contributor: userId } },
+  { $project: {
+      type: { $literal: "resource" },
+      title: "$title",
+      date: "$createdAt"
+    }
+  },
+  { $unionWith: {
+    coll: "projects",
+    pipeline: [
+      { $match: { user: userId } },
+      { $project: {
+          type: { $literal: "project" },
+          title: "$title",
+          date: "$createdAt"
+        }
+      }
+    ]
+  }},
+  { $unionWith: {
+    coll: "events",
+    pipeline: [
+      { $match: { owner: userId } },
+      { $project: {
+          type: { $literal: "event" },
+          title: "$name",
+          date: "$createdAt"
+        }
+      }
+    ]
+  }},
+  { $sort: { date: -1 } },
+  { $limit: 10 }
+    ])
+
+    console.log(JSON.stringify(
+      [
+     { $match: { contributor: userId } },
+  { $project: {
+      type: { $literal: "resource" },
+      title: "$title",
+      date: "$createdAt"
+    }
+  },
+  { $unionWith: {
+    coll: "projects",
+    pipeline: [
+      { $match: { user: userId } },
+      { $project: {
+          type: { $literal: "project" },
+          title: "$title",
+          date: "$createdAt"
+        }
+      }
+    ]
+  }},
+  { $unionWith: {
+    coll: "events",
+    pipeline: [
+      { $match: { owner: userId } },
+      { $project: {
+          type: { $literal: "event" },
+          title: "$name",
+          date: "$createdAt"
+        }
+      }
+    ]
+  }},
+  { $sort: { date: -1 } },
+  { $limit: 10 }
+    ]
+    ))
+
+    res.status(200).json({
+      success:true,activity:recentActivity
+    })
+  }
+)

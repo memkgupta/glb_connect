@@ -52,7 +52,7 @@ app.use("/api/v2/events/registrations",eventRegistrationRoutes)
 app.use("/api/v2/events/admin/forms",eventFormRoutes)
 app.use("/api/v2/events/assignments",assignmentRouter)
 app.use("/api/v1/forms",formRouter)
-app.use("/api/v1/utils",utilRouter)
+app.use("/api/v1/",utilRouter)
 app.use("/api/v1/users",userRouter)
 app.use("/api/v1/projects",projectRouter)
 app.use("/api/v1/uploads",uploadRouter);

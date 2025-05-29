@@ -107,6 +107,7 @@ const eventRegistrationSchema =new Schema({
     formSubmission:{type:Schema.Types.ObjectId,ref:'FormSubmission'},
     status:{type:String,default:'pending',enum:["pending","completed"]},
     team:{type:Schema.Types.ObjectId,ref:"Team"},
+    registrationCode:{type:String,unique:true,required:true},
     isApproved:{type:Boolean,default:false},
     registrationTimestamp:{type:Date,default:Date.now},
     email:{type:String,required:true,unique:true},

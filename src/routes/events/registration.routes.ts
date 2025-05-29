@@ -1,4 +1,5 @@
 
+import { checkIn, fetchRegistrationDetailsForCheckin } from "@controllers/events/check_in.controller";
 import { getEventById, getEvents } from "@controllers/events/event.controller";
 import { createTeam, getMyRegistrations, getMyRegistrationStatus, getMyTeamDetails, giveFeedback, isRegistered, joinTeam, registerForEvent, submitTeamForReview } from "@controllers/events/registration.controller";
 import { authenticate, isClubAdmin } from "@middlewares/auth.middleware";
@@ -15,4 +16,6 @@ router.post("/join-team",authenticate,joinTeam)
 router.post('/feedback',authenticate,giveFeedback);
 router.post("/submit-team",authenticate,submitTeamForReview)
 router.get("/my-registrations",authenticate,getMyRegistrations)
+router.get("/check-in/fetch",authenticate,fetchRegistrationDetailsForCheckin)
+router.post("/check-in/mark",authenticate,checkIn)
 export default router;
