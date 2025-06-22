@@ -10,6 +10,7 @@ router.get("/update",update)
 router.get('/projects',getUserProjects)
 router.get('/contributions',getUserContributions)
 router.get('/my-projects',authenticate,getMyProjects)
+router.get('/saved-resources',authenticate,)
 router.get('/my-contributions',authenticate,getMyContributions)
 router.get("/feed",authenticate,getFeed);
 router.get("/dashboard",authenticate,getDashboard);

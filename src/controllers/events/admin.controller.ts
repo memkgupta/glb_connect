@@ -19,6 +19,9 @@ import { z } from "zod";
 import { eventCreationSchema } from "@utils/validators/schemas/event";
 import { APIError } from "@errors/APIError";
 import { eventCreationBasicDetailsSchema, eventCreationEventStructureSchema, eventCreationMonetoryDetailsSchema, eventCreationOrganiserDetailsSchema } from "@utils/validators/schemas/event";
+import { SearchEntityInterface } from "src/@types/search";
+import { createSearchEntity } from "@services/search";
+import SearchEntity from "@models/search_entity.model";
 
 export const getEventDashboardById = async (
   req: Request,
@@ -117,6 +120,14 @@ export const createEvent = async (
       event.club = new mongoose.Types.ObjectId(club_id as string);
     }
     await event.save();
+    const searchEntity:SearchEntityInterface = {
+      label:"",
+      refId:event._id,
+      type:"event",
+      tags:[],
+    
+    }
+    await createSearchEntity(searchEntity);
     res.status(200).json({
       success: true,
       event: event._id,
@@ -175,7 +186,12 @@ export const updateEventDetails = async(req:Request,res:Response,next:NextFuncti
       default:
         parsedData = null;   
     }
-   
+    if(section == "basic_details")
+    {
+      await SearchEntity.findOneAndUpdate({refId:event._id},{
+        title:(parsedData as any).title
+      })
+    }
     await event.save();
  res.status(200).json({success:true,message:"Event updated",event:event});
         }

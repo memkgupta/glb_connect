@@ -2,10 +2,13 @@ import { BadRequestError } from "@errors/BadRequestError";
 import { InternalServerError } from "@errors/InternalServerError";
 import { ValidationError } from "@errors/ValidationError";
 import Resources from "@models/resource.model";
+import SearchEntity from "@models/search_entity.model";
 import Source from "@models/source.model";
 import Subject from "@models/subject.model";
 import User from "@models/user.model";
+import { asyncHandler } from "@utils/api/asyncHandler";
 import { NextFunction, Request, Response } from "express";
+
 import { z } from "zod";
 const usernameValidation = z
   .string()
@@ -99,64 +102,65 @@ if(label){
     return next(new InternalServerError("Some error occured"));
   }
 };
-export const search = async (
+// export const getSearchItem = asyncHandler(
+//   async(
+//     req:Request,
+//     res:Response,
+//     next:NextFunction
+//   )=>{
+//     const {search_id} = req.query;
+//     const result = 
+//   }
+// )
+export const search = asyncHandler(async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
-    // Extract query parameters
-    const { type, query } = req.query;
+  const query = req.query.q as string;
+  const page = parseInt(req.query.page as string) || 1; // default: page 1
+  const limit = parseInt(req.query.limit as string) || 10; // default: 10 results per page
+  const skip = (page - 1) * limit;
 
-    if (!query) {
-      return next(new BadRequestError("Query parameters is required"))
-    }
-
-    let results;
-
-    if (type === "users") {
-      // Search in users
-      const users = await User.find(
-        { $text: { $search: query.toString(), $caseSensitive: false } },
-        { score: { $meta: "textScore" } }
-      )
-        .select(["name", "username", "_id", "profile"])
-        .sort({ score: { $meta: "textScore" } })
-        .limit(10);
-
-      results = users.map((user) => ({
-        label: user.name,
-        thumbnail: user.profile,
-        sub: user.username,
-        _id:user._id,
-        href: `/user/${user.username}`,
-      }));
-    } else {
-      // Search in contributions
-      const resources = await Resources.find(
-        { $text: { $search: query.toString(), $caseSensitive: false } },
-        { score: { $meta: "textScore" } }
-      )
-        .select(["label", "branch", "_id"])
-        .sort({ score: { $meta: "textScore" } })
-        .limit(10);
-
-      results = resources.map((res) => ({
-        label: res.label,
-        sub: res.branch,
-        href: `/resources/${res._id}`,
-        thumbnail: null,
-      }));
-    }
-
-    res.status(200).json({ success: true, results });
-  } catch (error) {
-    console.error("GET /search error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Some error occurred" });
+  if (!query) {
+    return res.status(400).json({ message: 'Query string `q` is required' });
   }
-};
+
+  const regexQuery = { $regex: query, $options: 'i' };
+console.log( { title: regexQuery },
+      { content: regexQuery },
+      { tags: regexQuery })
+const [results, total] = await Promise.all([
+  SearchEntity.find({
+    $or: [
+      { label: regexQuery },
+      { content: regexQuery },
+      { tags: regexQuery }
+    ]
+  })
+    .sort({ updatedAt: -1 })
+    .skip(skip)
+    .limit(limit),
+
+  SearchEntity.countDocuments({
+    $or: [
+      { label: regexQuery },
+      { content: regexQuery },
+      { tags: regexQuery }
+    ]
+  })
+]);
+
+  const totalPages = Math.ceil(total / limit);
+console.log(results)
+  res.json({
+    currentPage: page,
+    totalPages,
+    totalResults: total,
+    results:results.map(result=>({...result.toObject(),url:getSearchURL(result.type,result.refId.toString())}))
+  });
+});
+
 export const getSources = async(req:Request,res:Response,next:NextFunction)=>{
   let {page=0} = req.query
   try {
@@ -165,5 +169,24 @@ export const getSources = async(req:Request,res:Response,next:NextFunction)=>{
   } catch (error) {
     console.error(error);
     return next(new InternalServerError("Some error occured"))
+  }
+}
+// const getModelForType = (type: string) => {
+//   switch (type) {
+//     case 'user': return User;
+//     case 'resource': return Resources;
+    
+//     case 'event': return Event;
+//     default: throw new Error('Unknown type');
+//   }
+// };
+const getSearchURL = (type:string,refId:string)=>{
+  switch(type)
+  {
+    case 'user':return `/user/${refId}`;
+    case 'resource': return `/resource/${refId}`;
+    case 'event':return `/event/${refId}`;
+    case 'lectures':return `/lectures/${refId}`;
+    default: throw new Error("Unknown type");
   }
 }

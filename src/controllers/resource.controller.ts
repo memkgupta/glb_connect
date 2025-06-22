@@ -9,9 +9,14 @@ import { BadRequestError } from "@errors/BadRequestError";
 import { NotFoundError } from "@errors/NotFoundError";
 import Vote from "@models/vote.model";
 import { Progress } from "@models/progress.model";
-import mongoose from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 import { ForbiddenError } from "@errors/ForbiddenError";
 import Source from "@models/source.model";
+import { asyncHandler } from "@utils/api/asyncHandler";
+import { fetchResourceById } from "@services/resources";
+import { Bookmark } from "@models/bookmark.model";
+import { SearchEntityInterface } from "src/@types/search";
+import { createSearchEntity } from "@services/search";
 
 export const uploadResource = async (
   req: Request,
@@ -19,8 +24,7 @@ export const uploadResource = async (
   next: NextFunction
 ) => {
   try {
-   //@ts-ignore
-       //@ts-ignore
+  
         const _user = req.user;
     if (!_user) {
       return next(new UnauthorizedError("Please login first"));
@@ -61,6 +65,12 @@ export const uploadResource = async (
       university,
     });
 
+var searchEntity:SearchEntityInterface|null = {
+      label:resource.label,
+      refId:resource._id,
+      type:"resource",
+      tags:[]
+    }
     // Handle playlist if provided
     if (playlist) {
       playlist = playlist.map((i: YTLecture) => ({
@@ -75,18 +85,20 @@ export const uploadResource = async (
           lectures: playlist,
         });
         resource.playlist = playlistDoc._id;
-        resource.thumbnail = playlist[0].thumbnail; // Assuming the first lecture's thumbnail is the resource's thumbnail
+        resource.thumbnail = playlist[0].thumbnail;
+        searchEntity.type="lectures" // Assuming the first lecture's thumbnail is the resource's thumbnail
       }
     }
 
     await resource.save();
 
+    await createSearchEntity(searchEntity)
     res.status(200).json({
       success: true,
       message: "Resource Added SuccessFully",
     });
   } catch (error: any) {
-    console.error(error);
+    console.log(error);
     return next(new InternalServerError("Some error occured"));
   }
 };
@@ -265,7 +277,92 @@ console.log(isAlreadyVoted)
     return next(new InternalServerError("Some error occured"));
   }
 };
+export const addBookmark = asyncHandler(
+  async(req:Request,res:Response,next:NextFunction)=>{
+    const resId = req.query.resId;
+    const _user = req.user;
+    const resource = await fetchResourceById(resId as string)
+    if(!resource)
+    {
+      throw new NotFoundError("Resource not found")
+    }
+    const bookmarks = await Bookmark.create(
+      {
+        user:_user._id,
+        resource:resource._id
+      }
+    );
+    res.status(200).json({
+      success:true,
+      message:"Bookmark added"
+    })
+  }
+)
+export const removeBookmark = asyncHandler(
+  async(req:Request,res:Response,next:NextFunction)=>{
+    const id = req.query.id;
+    const _user = req.user;
+  const bookmark = await Bookmark.findByIdAndDelete(id as string);
+  if(!bookmark || !bookmark.user?.equals(_user._id))
+  {
+    throw new NotFoundError("Bookmark not found")
+  }
+  res.status(201).json({
+    success:true,
+    message:"Bookmark removed"
+  })
+  }
+)
+export const getSavedResources = asyncHandler(
+  async(req:Request,res:Response,next:NextFunction)=>{
+    const _user = req.user;
 
+    const resources = await Bookmark.aggregate(
+      [
+        {
+          $match:{
+            user:new Types.ObjectId(_user._id)
+          }
+        },
+      {
+  $lookup: {
+    from: "resources",
+    let: { resourceId: "$resource" }, 
+    pipeline: [
+      {
+        $match: {
+          $expr: { $eq: ["$_id", "$$resourceId"] } 
+        }
+      },
+      {
+        $sort: { createdAt: -1 } 
+      }
+    ],
+    as: "resource"
+  }
+      },
+      {$unwind:{
+        path:"$resource",
+        preserveNullAndEmptyArrays:true
+      }},
+        {
+          $project:{
+            resource:{
+              label:true,
+              type:1,
+              code:1,
+              thumbnail:1,
+              file:1,
+            }
+          }
+        }
+      ]
+    )
+    res.status(200).json({
+      success:true,bookmarks:resources
+    })
+  }
+)
 /**
  * Builds the aggregation pipeline based on resource type.
  */

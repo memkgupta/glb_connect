@@ -12,6 +12,8 @@ import { NotFoundError } from "@errors/NotFoundError";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "@utils/index";
 import { ForbiddenError } from "@errors/ForbiddenError";
 import Club from "@models/club/club.model";
+import { SearchEntityInterface } from "src/@types/search";
+import { createSearchEntity } from "@services/search";
 export const signUp = async(req:Request,res:Response,next:NextFunction)=> {
     try {
       const { username, email, password, name } = req.body;
@@ -210,6 +212,13 @@ export const verify = async(req:Request,res:Response,next:NextFunction)=>{
         user.verified = true;
         user.otp = null;  // Clear the OTP after verification
         await user.save();
+        const searchEntity:SearchEntityInterface = {
+            label:user.username,
+            refId:user._id,
+            tags:[],
+            type:"user"
+        }
+        await createSearchEntity(searchEntity);
       res.status(200).json({ success: true, message: 'User verified successfully.' });
       } else {
         return next(new BadRequestError("Invlid OTP"));
