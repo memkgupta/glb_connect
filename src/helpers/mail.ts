@@ -260,4 +260,40 @@ export async function sendUserBannedEmail(email:string,username:string,reason:st
         return {success:false,message:"Failed to send email"}
       }
 }
-// export as
+export async function sendPasswordResetEmail(email: string, username: string, resetToken: string, userId: string): Promise<any> {
+  try {
+    const resetUrl = `${process.env.FRONTEND!}/auth/reset-password?token=${resetToken}&id=${userId}`;
+
+    await resend.emails.send({
+      from: 'glbconnect@mkdev.site',
+      to: email,
+      subject: 'Reset Your Password - Campus Connect',
+      html: `
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Password Reset</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; background-color: #0f172a; color: #ffffff; padding: 2rem;">
+          <div style="max-width: 600px; margin: auto; background-color: #1e293b; border-radius: 8px; padding: 2rem; border: 1px solid #3b82f6;">
+            <h2 style="color: #facc15;">Hi ${username},</h2>
+            <p>You recently requested to reset your password for your Campus Connect account.</p>
+            <p>Click the button below to reset it. <strong>This link will expire in 15 minutes.</strong></p>
+            <a href="${resetUrl}" style="display: inline-block; margin-top: 1rem; padding: 10px 20px; background-color: #3b82f6; color: #fff; text-decoration: none; border-radius: 5px;">
+              Reset Password
+            </a>
+            <p style="margin-top: 2rem;">If you did not request a password reset, please ignore this email or contact support.</p>
+            <hr style="border: 1px solid #334155; margin-top: 2rem;">
+            <p style="font-size: 0.8rem; color: #94a3b8;">Campus Connect | GLBITM</p>
+          </div>
+        </body>
+      </html>
+      `,
+    });
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: "Failed to send reset password email" };
+  }
+}

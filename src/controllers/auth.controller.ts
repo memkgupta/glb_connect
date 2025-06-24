@@ -3,17 +3,19 @@ import User from "@models/user.model";
 import { NextFunction, Request, Response } from "express";
 import { v4 as uuidV4 } from "uuid";
 import bcrypt from 'bcryptjs'
-import { sendVerificationEmail } from "../helpers/mail";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../helpers/mail";
 import { InternalServerError } from "@errors/InternalServerError";
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { BadRequestError } from "@errors/BadRequestError";
 import { UnauthorizedError } from "@errors/UnauthorizedError";
 import { NotFoundError } from "@errors/NotFoundError";
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "@utils/index";
+import { extractClaims, generateAccessToken, generateRefreshToken, generateToken, verifyRefreshToken } from "@utils/index";
 import { ForbiddenError } from "@errors/ForbiddenError";
 import Club from "@models/club/club.model";
 import { SearchEntityInterface } from "src/@types/search";
 import { createSearchEntity } from "@services/search";
+import { asyncHandler } from "@utils/api/asyncHandler";
+import { getUserByEmail } from "@services/users";
 export const signUp = async(req:Request,res:Response,next:NextFunction)=> {
     try {
       const { username, email, password, name } = req.body;
@@ -335,3 +337,28 @@ export const me = async(req:Request,res:Response,next:NextFunction)=>{
     return next(new InternalServerError("Some error occured"));
   }
 }
+export const requestForgotPassword = asyncHandler(
+  async(req:Request,res:Response,next:NextFunction)=>{
+    const {email} = req.body;
+    const user =await getUserByEmail(email);
+    const resetPasswordToken = generateToken({user_id:user._id,email:user.email},'15m');
+    await sendPasswordResetEmail(email,user.username,resetPasswordToken,user._id.toString());
+    res.status(200).json({success:true,message:"Reset link sent to mail"})
+  }
+)
+export const resetPassword = asyncHandler(
+  async(req:Request,res:Response,next:NextFunction)=>{
+    
+    const {newPass,token,userId} = req.body;
+
+    const {email} = extractClaims(token as string) as any;
+    const user = await getUserByEmail(email)
+    if(!user || user._id.toString()!=userId)
+    {
+      throw new ForbiddenError("Token invalid");
+    }
+    user.password =await bcrypt.hash(newPass, 10)
+    await user.save();
+    res.status(200).json({success:true,message:"Password changed"});
+  }
+)

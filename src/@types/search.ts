@@ -9,4 +9,4 @@ export interface SearchEntityInterface
   tags: string[];
 
 }
-export type SearchEntityType = 'user' | 'resource' | 'roadmap' | 'lectures' | 'event';
+export type SearchEntityType = 'user' | 'resource' | 'roadmap' | 'lectures' | 'event'|"announcement";

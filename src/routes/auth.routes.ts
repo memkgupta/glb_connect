@@ -1,4 +1,4 @@
-import { login, logout, me, refreshToken, session, signUp, update, verify } from "@controllers/auth.controller";
+import { login, logout, me, refreshToken, requestForgotPassword, resetPassword, session, signUp, update, verify } from "@controllers/auth.controller";
 import { authenticate } from "@middlewares/auth.middleware";
 import { Router } from "express";
 
@@ -12,4 +12,6 @@ router.post('/refresh-token',refreshToken)
 router.post('/logout',authenticate,logout)
 router.get('/session',authenticate,session)
 router.get('/me',authenticate,me)
+router.post('/forgot-password',requestForgotPassword);
+router.post('/reset-password',resetPassword)
 export default router

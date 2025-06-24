@@ -774,99 +774,99 @@ export const removeContribution = async (
     return next(new InternalServerError("Some error occured"));
   }
 };
-export const getAnnouncements = async(req:Request,res:Response,next:NextFunction)=>{
-  const {title,date,page,show_removed} = req.query;
-  try {
-const filters:any = {}
-if(title){
-  filters.title = {
-    $regex:`^${title}`,
-    $options:"i"
-  }
-}
-if(date){
-  filters.date = new Date(date as string)
-}
-if(!show_removed){
-  filters.isRemoved=false
-}
-const aggregation = [
-  {$match:filters},
-  {
-    $skip:(parseInt(page as string)-1)*20
-  },
-  {$limit:20},
-]
-const announcements = await Announcement.aggregate(aggregation);
-const totalAnnouncements = await Announcement.find(filters).countDocuments();
+// export const getAnnouncements = async(req:Request,res:Response,next:NextFunction)=>{
+//   const {title,date,page,show_removed} = req.query;
+//   try {
+// const filters:any = {}
+// if(title){
+//   filters.title = {
+//     $regex:`^${title}`,
+//     $options:"i"
+//   }
+// }
+// if(date){
+//   filters.date = new Date(date as string)
+// }
+// if(!show_removed){
+//   filters.isRemoved=false
+// }
+// const aggregation = [
+//   {$match:filters},
+//   {
+//     $skip:(parseInt(page as string)-1)*20
+//   },
+//   {$limit:20},
+// ]
+// const announcements = await Announcement.aggregate(aggregation);
+// const totalAnnouncements = await Announcement.find(filters).countDocuments();
 
-res.status(200).json({
-  success:true,announcements,totalResults:totalAnnouncements
-})
-  } catch (error) {
-    console.error(error);
-    return next(new InternalServerError("Some error occured"))
-  }
-}
-export const makeAnnouncement = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const { title, description, endDate, actionLink } = req.body;
-  try {
-    const announcement = await Announcement.create({
-      title,
-      description,
-      actionLink,
-      endDate,
-    });
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Announcement created successfully",
-        _id: announcement._id,
-      });
-  } catch (error) {
-    console.error(error);
-    return next(new InternalServerError("Some error occured"));
-  }
-};
-export const editAnnoucement = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const {  title, description, endDate, actionLink, isRemoved } = req.body;
-  const id = req.params.id;
-  try {
-    const announcement = await Announcement.findById(id);
-    if (!announcement) {
-      return next(new BadRequestError("Bad request"));
-    }
-    if (description) {
-      announcement.description = description;
-    }
-    if (title) {
-      announcement.title = title;
-    }
-    if (endDate) {
-      announcement.endDate =endDate
-    }
-    if (isRemoved) {
-      announcement.isRemoved = isRemoved;
-    }
-    if (actionLink) {
-      announcement.actionLink = actionLink;
-    }
-    await announcement.save();
-    res.status(200).json({ success: true, message: "Announcement updated" });
-  } catch (error) {
-    console.error(error);
-    return next(new InternalServerError("Some error occured"));
-  }
-};
+// res.status(200).json({
+//   success:true,announcements,totalResults:totalAnnouncements
+// })
+//   } catch (error) {
+//     console.error(error);
+//     return next(new InternalServerError("Some error occured"))
+//   }
+// }
+// export const makeAnnouncement = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const { title, description, endDate, actionLink } = req.body;
+//   try {
+//     const announcement = await Announcement.create({
+//       title,
+//       description,
+//       actionLink,
+//       endDate,
+//     });
+//     res
+//       .status(200)
+//       .json({
+//         success: true,
+//         message: "Announcement created successfully",
+//         _id: announcement._id,
+//       });
+//   } catch (error) {
+//     console.error(error);
+//     return next(new InternalServerError("Some error occured"));
+//   }
+// };
+// export const editAnnoucement = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const {  title, description, endDate, actionLink, isRemoved } = req.body;
+//   const id = req.params.id;
+//   try {
+//     const announcement = await Announcement.findById(id);
+//     if (!announcement) {
+//       return next(new BadRequestError("Bad request"));
+//     }
+//     if (description) {
+//       announcement.description = description;
+//     }
+//     if (title) {
+//       announcement.title = title;
+//     }
+//     if (endDate) {
+//       announcement.endDate =endDate
+//     }
+//     if (isRemoved) {
+//       announcement.isRemoved = isRemoved;
+//     }
+//     if (actionLink) {
+//       announcement.actionLink = actionLink;
+//     }
+//     await announcement.save();
+//     res.status(200).json({ success: true, message: "Announcement updated" });
+//   } catch (error) {
+//     console.error(error);
+//     return next(new InternalServerError("Some error occured"));
+//   }
+// };
 export const addSubjects = async (
   req: Request,
   res: Response,

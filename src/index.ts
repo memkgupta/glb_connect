@@ -24,6 +24,7 @@ import clubTeamRouter from "@routes/club/team.routes"
 import clubTaskRouter from "@routes/club/tasks.routes"
 import assignmentRouter from "@routes/events/assignment.routes"
 import { authenticate, authorize } from "@middlewares/auth.middleware";
+import announcementRouter from "@routes/announcement.routes"
 import { UserRoles } from "./@types";
 // dotenv.config();
 const app: Express = express();
@@ -60,6 +61,7 @@ app.use("/api/v1/admin",authenticate,async(req:Request,res:Response,next:NextFun
    await authorize([UserRoles.ADMIN],next,req);
 
 },adminRouter)
+app.use("/api/v1/announcements",announcementRouter)
 app.use(errorHandler);
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);

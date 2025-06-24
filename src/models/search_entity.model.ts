@@ -1,14 +1,14 @@
 import { model, Schema, Types } from "mongoose";
 export interface ISearchEntity extends Document {
-  type: 'user' | 'resource' | 'pyq' | 'lecture' | 'event';
+  type: 'user' | 'resource' | 'pyq' | 'lecture' | 'event' | 'announcement';
   refId: Types.ObjectId;
   label: string;
   content?: string;
   tags: string[];
-  createdAt: Date;
+  createdAt?: Date;
 }
 const searchEntitySchema = new Schema<ISearchEntity>({
-    type:{type:String,required:true,enum:["user","resource","event","article","roadmap","lectures"]},
+    type:{type:String,required:true,enum:["user","resource","event","article","roadmap","lectures",'announcement']},
     refId:{type:Schema.Types.ObjectId},
     label:String,
     content:{type:String,required:false},

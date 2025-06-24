@@ -17,6 +17,9 @@ import { fetchResourceById } from "@services/resources";
 import { Bookmark } from "@models/bookmark.model";
 import { SearchEntityInterface } from "src/@types/search";
 import { createSearchEntity } from "@services/search";
+import { title } from "process";
+import { IActivity } from "@models/activity.model";
+import { noteActivity } from "@services/activities";
 
 export const uploadResource = async (
   req: Request,
@@ -71,6 +74,11 @@ var searchEntity:SearchEntityInterface|null = {
       type:"resource",
       tags:[]
     }
+    var activity:Partial<IActivity>={
+      title:label,
+      type:"resource",
+       message:`New Resource ${label} was added by ${user.username}`
+    }
     // Handle playlist if provided
     if (playlist) {
       playlist = playlist.map((i: YTLecture) => ({
@@ -87,12 +95,21 @@ var searchEntity:SearchEntityInterface|null = {
         resource.playlist = playlistDoc._id;
         resource.thumbnail = playlist[0].thumbnail;
         searchEntity.type="lectures" // Assuming the first lecture's thumbnail is the resource's thumbnail
+        activity.type = "lectures"
+         activity.message = `New Lectures ${label} was added by ${user.username}`
+      }
+      else{
+       
+         activity.message = `New Resource ${label} was added by ${user.username}`
       }
     }
 
     await resource.save();
-
+    activity.refId = resource._id;
+    activity.createdBy = user._id,
+   
     await createSearchEntity(searchEntity)
+    await noteActivity(activity)
     res.status(200).json({
       success: true,
       message: "Resource Added SuccessFully",

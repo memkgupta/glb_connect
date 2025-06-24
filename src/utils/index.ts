@@ -15,6 +15,12 @@ export const verifyRefreshToken = (token: string) => {
   export const generateRefreshToken = (userId: string) => {
     return jwt.sign({ userId },process.env.REFRESH_TOKEN_SECRET!, { expiresIn: '30d' });
   };
+  export const generateToken = (payload:any,expiresIn:string)=>{
+    return jwt.sign(payload,process.env.TOKEN_SECRET!,{expiresIn});
+  }
+  export const extractClaims = (token:string)=>{
+    return jwt.verify(token,process.env.TOKEN_SECRET!)
+  }
   export function generateSixDigitCodeFromUUID() {
   const uuid = uuidv4(); // e.g., '1b4e28ba-2fa1-11d2-883f-0016d3cca427'
   const hex = uuid.replace(/-/g, ''); // remove dashes

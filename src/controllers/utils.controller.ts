@@ -187,6 +187,7 @@ const getSearchURL = (type:string,refId:string)=>{
     case 'resource': return `/resource/${refId}`;
     case 'event':return `/event/${refId}`;
     case 'lectures':return `/lectures/${refId}`;
+    case 'announcement':return `/announcement/${refId}`
     default: throw new Error("Unknown type");
   }
 }

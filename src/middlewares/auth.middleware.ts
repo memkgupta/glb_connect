@@ -27,11 +27,16 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
        return next(new UnauthorizedError('Invalid token'))
       }
   
-      // Attach user info to request object for further use in next middleware
-      //@ts-ignore
+
+      const user = await User.findById(decoded.userId);
+      if(!user)
+      {
+        return next(new UnauthorizedError("Invalid token"))
+      }
       req.user = {
         userId:decoded.userId,
-        _id:decoded.userId
+        _id:decoded.userId,
+        role:user.role,
       };
       
       next(); 
@@ -186,3 +191,18 @@ try {
 throw new APIError("Some error occured",500);
 }
 }
+export const isAdmin = async(req: Request, res: Response, next: NextFunction) => {
+  // Check if user is attached to the request (auth middleware must run before this)
+  if (!req.user) {
+     res.status(401).json({ success: false, message: "Unauthorized: No user found" })
+     return;
+  }
+
+  // Check if user has admin role
+  if (req.user.role !== "ADMIN") {
+  res.status(403).json({ success: false, message: "Forbidden: Admins only" });
+  return;
+  }
+
+  next(); // ✅ User is admin, proceed
+};
