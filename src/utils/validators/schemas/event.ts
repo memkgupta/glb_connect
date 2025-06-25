@@ -75,7 +75,7 @@ const guidelineSchema = z.object({
 // step 2
 export const eventCreationBasicDetailsSchema = z.object({
     title:z.string().min(20).max(200),
-    description:z.string().min(100).max(2000),
+    description:z.string().max(2000),
     venue:z.string(),
     participantsFromOutsideAllowed:z.boolean(),
     startDate:z
@@ -94,7 +94,7 @@ export const eventCreationBasicDetailsSchema = z.object({
     isTeamEvent:z.boolean(),
     category:z.union([z.enum(["entreprenurship","technical","cultural","social"]),z.string()]),
     isFree:z.boolean(),
-    maxParticipants:z.number().optional(),
+    maxParticipants:z.string().refine(arg=>parseInt(arg)).optional(),
     registrationDeadline:z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), {

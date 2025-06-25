@@ -156,6 +156,10 @@ export const updateEventDetails = async(req:Request,res:Response,next:NextFuncti
     }
     let parsedData = null;
     let response = null;
+    if(section == "publish" && !event.registrationForm && body.isPublished)
+    {
+    throw new BadRequestError("No Registration form attached")
+    }
     switch(section){
       case "banner":
         event.banner = body.banner;
@@ -164,6 +168,7 @@ export const updateEventDetails = async(req:Request,res:Response,next:NextFuncti
         event.gallery = body.gallery;
         break;  
       case "publish":
+        
         event.isPublished = body.isPublished 
         break; 
       case "basic_details":

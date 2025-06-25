@@ -22,7 +22,9 @@ export const getEvents = async (
     const limit = 10;
     const skip = (page - 1) * limit;
   
-    let matchStage: any = {};
+    let matchStage: any = {
+      isPublished:true
+    };
   
     // Basic filters
     if (queryParams.location) {
@@ -203,9 +205,7 @@ export const getEventById = async (
    
     if(_user)
     {
-      console.log(_user)
-      // console.log({user:_user._id,
-      //   event:event[0]._id})
+    
       registration    = await EventRegistration.findOne({
         user:_user._id,
         event:event[0]._id

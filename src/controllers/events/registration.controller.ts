@@ -52,7 +52,7 @@ export const registerForEvent = async (
       event: event._id,
       status: "completed",
     }).countDocuments();
-    if (registrationsTotal >= event.basicDetails!.maxParticipants!) {
+    if (event.basicDetails?.maxParticipants && registrationsTotal >= parseInt(event.basicDetails!.maxParticipants!)) {
       res.status(200).json({
         success: false,
         message: "Registrations full",
@@ -135,7 +135,7 @@ export const fillRegistrationForm = async (
     {
       return next(new NotFoundError("Event not found"))
     }
-    const form = await Form.findById(form_id)
+    const form = await Form.findById(event.registrationForm)
     if(!form){
       return next(new NotFoundError("Form not found"))
     }
@@ -143,7 +143,7 @@ export const fillRegistrationForm = async (
       formId:form._id,
       submittedBy:registration._id
     })
-console.log("bc",isSubmissionExists)
+
     if(isSubmissionExists){
       return next(new BadRequestError("Form already submitted"))
     }
@@ -395,7 +395,7 @@ export const getMyRegistrationStatus = async (
   //@ts-ignore
   const _user = req.user;
   const regId = req.query.regId;
-  // console.log(eventId);
+  
   try {
     const user = await User.findById(_user.userId);
     if (!user) {

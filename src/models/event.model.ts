@@ -16,7 +16,7 @@ const eventSchema = new Schema({
        isTeamEvent:{type:Boolean,default:false},
        category: { type: String, required: true },
        isFree:{type:Boolean,default:false},
-       maxParticipants:{type:Number},
+       maxParticipants:{type:String},
        registrationDeadline:{type:Date,required:true},
        multipleRounds:{type:Boolean,default:false}
     },
