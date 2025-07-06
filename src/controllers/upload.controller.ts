@@ -66,7 +66,7 @@ export const getUpload = async(req:Request,res:Response,next:NextFunction)=>{
         }
        
         // const url = await getObjecURL(upload.key);
-        const url = `https://d1k9jx0t56dwsj.cloudfront.net/${upload.key}`
+        const url = `${process.env.CDN_URL}/${upload.key}`
         res.status(200).setHeader('Cache-Control',"public,max-age=31536000,immutable").send(url);
     } catch (error) {
         
@@ -84,7 +84,7 @@ export const getDocument = async(req:Request,res:Response,next:NextFunction)=>{
         }
        
         // const url = await getObjecURL(upload.key);
-        const url = `https://d1k9jx0t56dwsj.cloudfront.net/${upload.key}`
+        const url = `${process.env.CDN_URL}/${upload.key}`
         res.status(200).setHeader('Cache-Control',"public,max-age=31536000,immutable").json({
             url:url,
             metadata:{
